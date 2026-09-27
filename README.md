@@ -37,6 +37,15 @@ An automated pipeline that writes executive intelligence briefings centred on th
 | Delivery | `briefing/telegram.py` | Converts `**bold**` / `*italic*` to Telegram HTML so special characters can't break the message. Falls back to plain text if Telegram rejects the HTML, and posts to several chats if configured. |
 | Memory | `briefing/state.py` | Part 2 sees Part 1, and each edition sees the previous one (AM↔PM), so items aren't repeated. Items already used within 36h are skipped. |
 
+## Coverage
+
+The EU is the centre of gravity. The **US, China, Russia and BRICS+** each get their own coverage:
+
+- **Part 1, Global Axis:** one bullet per actor (🇺🇸 🇨🇳 🇷🇺 🌍), each with a hard metric and the knock-on effect for Europe. A *Global Anchors* line in the Market Ledger adds DXY, USD/CNH, CSI 300 / Hang Seng, USD/RUB, and a BRICS+ currency or equity move.
+- **Part 2:** US and Chinese tech and space moves are reported on their own merits.
+- **Ingestion:** every feed item is tagged by actor (EU / US / CN / RU / BRICS). Each actor gets a guaranteed share of the items sent to the model (`region_quota` in `briefing/dispatch.py`, default 4), so heavy EU news can't crowd the others out.
+- **Sources:** FT and Bloomberg regional feeds, plus official domains Claude can search: US Treasury/OFAC, Commerce, BIS, USTR, White House, DoD; China's State Council, PBoC, MOFCOM, NBS; Russia's CBR and Kremlin (quoted as official rhetoric only); the New Development Bank, RBI and Banco Central do Brasil.
+
 ## Schedule
 
 | Target (UTC) | Job | Dispatches |

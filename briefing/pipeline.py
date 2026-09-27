@@ -55,7 +55,7 @@ def run_dispatch(
     if opts.feeds:
         items, feed_status = ingest.collect(
             sources.feeds, spec.pillars, now, spec.lookback_hours,
-            settings.max_feed_items, state.seen_keys(now),
+            settings.max_feed_items, state.seen_keys(now), spec.region_quota,
         )
     log.info("%s: %d fresh feed items", dispatch.value, len(items))
 

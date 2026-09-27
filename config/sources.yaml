@@ -29,6 +29,25 @@ allowed_domains:
   - imf.org
   - esa.int
   - spacechina.com     # CASC
+  # Official institutions: US
+  - treasury.gov       # incl. OFAC sanctions
+  - commerce.gov
+  - bis.gov            # US Bureau of Industry and Security (export controls)
+  - ustr.gov
+  - whitehouse.gov
+  - defense.gov
+  # Official institutions: China
+  - gov.cn             # State Council (english.www.gov.cn)
+  - pbc.gov.cn
+  - mofcom.gov.cn
+  - stats.gov.cn
+  # Official institutions: Russia (official rhetoric / CBR decisions only)
+  - cbr.ru
+  - kremlin.ru
+  # Official institutions: BRICS+
+  - ndb.int            # New Development Bank
+  - rbi.org.in
+  - bcb.gov.br
   # Think tanks
   - bruegel.org
   - csis.org
@@ -66,6 +85,28 @@ feeds:
   - name: Handelsblatt
     url: https://www.handelsblatt.com/contentexport/feed/schlagzeilen
     pillars: [macro, energy]
+  # --- Global axis (US / China / Russia / BRICS+) ---
+  - name: Bloomberg Economics
+    url: https://feeds.bloomberg.com/economics/news.rss
+    pillars: [macro, geo]
+  - name: FT US
+    url: https://www.ft.com/us?format=rss
+    pillars: [geo, macro]
+  - name: FT China
+    url: https://www.ft.com/china?format=rss
+    pillars: [geo, tech]
+  - name: FT Russia
+    url: https://www.ft.com/russia?format=rss
+    pillars: [geo, energy]
+  - name: FT Emerging Markets
+    url: https://www.ft.com/emerging-markets?format=rss
+    pillars: [geo, macro]
+  - name: FT India
+    url: https://www.ft.com/india?format=rss
+    pillars: [geo]
+  - name: WSJ Business
+    url: https://feeds.a.dj.com/rss/WSJcomUSBusiness.xml
+    pillars: [macro, tech]
   # --- Tier-1 geopolitics / defense / space ---
   - name: Defense One
     url: https://www.defenseone.com/rss/all/

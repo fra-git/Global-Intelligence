@@ -27,6 +27,17 @@ INSTRUMENTS: dict[str, str] = {
     "CAC 40": "^FCHI",
     "FTSE MIB": "FTSEMIB.MI",
     "S&P 500": "^GSPC",
+    # Global axis anchors
+    "US Dollar Index (DXY)": "DX-Y.NYB",
+    "USD/CNH": "CNH=X",
+    "CSI 300": "000300.SS",
+    "Hang Seng": "^HSI",
+    "USD/RUB": "RUB=X",
+    "USD/INR": "INR=X",
+    "Nifty 50": "^NSEI",
+    "USD/BRL": "BRL=X",
+    "Bovespa": "^BVSP",
+    "WTI (front, $/bbl)": "CL=F",
 }
 
 

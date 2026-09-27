@@ -60,3 +60,22 @@ def test_state_roundtrip_and_prior_context(tmp_path):
     ctx = prior_context(s2, "PM_PART_2", NOW)
     assert any(k.startswith("PM_PART_1") for k in ctx)
     assert any(k.startswith("AM_PART_2") for k in ctx)
+
+
+def test_regions_tagging():
+    from briefing.ingest import regions_of
+    assert regions_of("Beijing tightens rare earth export curbs on EU carmakers") == ("eu", "cn")
+    assert "ru" in regions_of("Kremlin reroutes Urals crude via shadow fleet")
+    assert "brics" in regions_of("BRICS summit: India pushes rupee settlement")
+    assert "us" in regions_of("U.S. Treasury widens sanctions")
+    assert regions_of("Plus us and them") == ()
+
+
+def test_region_quota_protects_non_eu_coverage():
+    eu = [_item(f"ECB Lagarde BTP Bund spread 1{i}bps eurozone Germany France", 1) for i in range(20)]
+    ru = _item("Kremlin shifts policy", 1)
+    cn = _item("PBoC trims rate", 1)
+    plain = rank(eu + [ru, cn], NOW, 12, 10)
+    assert ru not in plain and cn not in plain
+    quota = rank(eu + [ru, cn], NOW, 12, 10, region_quota=2)
+    assert ru in quota and cn in quota and len(quota) == 10

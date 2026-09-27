@@ -27,13 +27,40 @@ _SIGNAL_TERMS = {
     "eurozone": 3, "euro area": 3, "european commission": 3, "brussels": 2, "eu ": 2,
     "germany": 2, "france": 2, "italy": 2, "berlin": 2, "paris": 2,
     "fed": 2, "powell": 2, "treasury": 2, "tariff": 3, "sanction": 3, "export control": 3,
-    "china": 2, "beijing": 2, "russia": 2, "ukraine": 2, "nato": 2, "brics": 2,
+    "china": 3, "beijing": 2, "pboc": 3, "mofcom": 3, "yuan": 2, "taiwan": 2,
+    "russia": 3, "kremlin": 2, "ukraine": 2, "urals": 2, "rouble": 2, "ruble": 2, "nato": 2,
+    "brics": 3, "india": 2, "brazil": 2, "saudi": 2, "opec": 3, "white house": 2, "ustr": 3,
     "semiconductor": 3, "chip": 2, "asml": 3, "tsmc": 3, "lithography": 3, "ai act": 3,
     "cyber": 2, "cloud": 1, "satellite": 2, "launch": 2, "esa": 3, "ariane": 3,
     "spacex": 2, "starlink": 2, "iris²": 3, "iris2": 3, "lng": 3, "ttf": 3, "brent": 2,
     "gas storage": 3, "rare earth": 3, "lithium": 2, "grid": 2, "nuclear": 2,
     "bps": 2, "basis point": 2, "%": 1, "billion": 1, "bn": 1,
 }
+
+
+# Actor tagging. An item can carry several regions; tags drive per-region quotas
+# so EU-heavy news flow cannot crowd the US/China/Russia/BRICS+ picture out.
+REGIONS = ("eu", "us", "cn", "ru", "brics")
+_REGION_TERMS: dict[str, tuple[str, ...]] = {
+    "eu": ("ecb", "eurozone", "euro area", "european", "brussels", "germany", "german", "berlin",
+           "france", "french", "paris", "italy", "italian", "rome", "spain", "poland", "netherlands",
+           "lagarde", "von der leyen", "bund", "btp", " eu ", "eu's", "nato"),
+    "us": ("united states", "u.s.", " us-", "america", "washington", "white house", "trump",
+           "congress", "senate", "pentagon", "fed ", "federal reserve", "powell", "treasury",
+           "wall street", "ustr", "commerce department", "nasdaq", "s&p"),
+    "cn": ("china", "chinese", "beijing", "xi jinping", "pboc", "yuan", "renminbi", "mofcom",
+           "shanghai", "shenzhen", "hong kong", "taiwan", "huawei", "smic", "casc"),
+    "ru": ("russia", "russian", "moscow", "kremlin", "putin", "rouble", "ruble", "gazprom",
+           "rosneft", "urals", "ukraine", "kyiv", "shadow fleet"),
+    "brics": ("brics", "india", "indian", "modi", "rbi", "brazil", "lula", "south africa",
+              "saudi", "uae", "emirates", "iran", "egypt", "ethiopia", "indonesia", "turkey",
+              "opec", "new development bank", "global south", "rupee"),
+}
+
+
+def regions_of(text: str) -> tuple[str, ...]:
+    t = f" {text.lower()} "
+    return tuple(r for r in REGIONS if any(term in t for term in _REGION_TERMS[r]))
 
 
 @dataclass(frozen=True)
@@ -45,6 +72,10 @@ class Item:
     summary: str
     pillars: tuple[str, ...]
     score: float = 0.0
+
+    @property
+    def regions(self) -> tuple[str, ...]:
+        return regions_of(f"{self.title} {self.summary}")
 
     @property
     def key(self) -> str:
@@ -97,6 +128,7 @@ def collect(
     lookback_hours: int,
     limit: int,
     seen_keys: set[str] | frozenset[str] = frozenset(),
+    region_quota: int = 0,
 ) -> tuple[list[Item], dict[str, str]]:
     """Return (ranked items, per-feed status) for feeds matching `pillars`."""
     selected = [f for f in feeds if set(f.pillars) & set(pillars)]
@@ -118,7 +150,7 @@ def collect(
                 status[feed.name] = f"ok ({len(got)})"
                 items.extend(got)
 
-    return rank(items, now, lookback_hours, limit, seen_keys), status
+    return rank(items, now, lookback_hours, limit, seen_keys, region_quota), status
 
 
 def rank(
@@ -127,7 +159,10 @@ def rank(
     lookback_hours: int,
     limit: int,
     seen_keys: set[str] | frozenset[str] = frozenset(),
+    region_quota: int = 0,
 ) -> list[Item]:
+    """Freshness window + de-dupe, then pick: up to `region_quota` best items per
+    actor first (guaranteed coverage), remaining slots by score."""
     cutoff = now - timedelta(hours=lookback_hours)
     fresh: dict[str, Item] = {}
     for it in items:
@@ -138,4 +173,15 @@ def rank(
         # Same story across outlets: keep the highest-scoring copy.
         if it.key not in fresh or it.score > fresh[it.key].score:
             fresh[it.key] = it
-    return sorted(fresh.values(), key=lambda i: (i.score, i.published), reverse=True)[:limit]
+    ordered = sorted(fresh.values(), key=lambda i: (i.score, i.published), reverse=True)
+    picked: dict[str, Item] = {}
+    if region_quota:
+        for region in REGIONS:
+            for it in [i for i in ordered if region in i.regions][:region_quota]:
+                if len(picked) < limit:
+                    picked[it.key] = it
+    for it in ordered:
+        if len(picked) >= limit:
+            break
+        picked.setdefault(it.key, it)
+    return sorted(picked.values(), key=lambda i: (i.score, i.published), reverse=True)

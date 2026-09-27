@@ -34,6 +34,8 @@ class DispatchSpec:
     required_sections: tuple[str, ...]
     wants_market_snapshot: bool
     wants_calendar: bool
+    # Minimum feed items reserved per actor (EU, US, China, Russia, BRICS+).
+    region_quota: int = 4
 
 
 _PART1_SECTIONS = (
