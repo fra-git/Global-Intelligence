@@ -1,19 +1,23 @@
 name: Intelligence Dispatch
 
-# Two sessions a day; each runs Part 1 then Part 2 in one job so Part 2 sees
-# Part 1 (de-duplication) and the market snapshot is fetched once.
-# GitHub cron can lag 5–20 min, so triggers sit ahead of the target send time.
+# Two sessions a day, delivered at 06:00 and 20:30 Italian time (Europe/Rome).
+# GitHub cron is UTC-only and ignores daylight saving, so each session has two
+# triggers (summer CEST = UTC+2, winter CET = UTC+1); the `gate` job lets only
+# the one matching Italy's current offset proceed. Runs start ~45 min early,
+# generate Part 1 then Part 2, and hold both until the exact delivery minute.
 on:
   schedule:
-    - cron: "10 5 * * *"    # AM session  -> lands ~05:30 UTC, before the European cash open
-    - cron: "40 16 * * *"   # PM session  -> lands ~17:00 UTC, after the European cash close
+    - cron: "15 3 * * *"    # AM, summer: 05:15 CEST -> deliver 06:00
+    - cron: "15 4 * * *"    # AM, winter: 05:15 CET  -> deliver 06:00
+    - cron: "45 17 * * *"   # PM, summer: 19:45 CEST -> deliver 20:30
+    - cron: "45 18 * * *"   # PM, winter: 19:45 CET  -> deliver 20:30
   workflow_dispatch:
     inputs:
       dispatch:
         description: "AM | PM | AM_PART_1 | AM_PART_2 | PM_PART_1 | PM_PART_2 | auto"
         default: auto
       send:
-        description: "Post to Telegram"
+        description: "Post to Telegram (immediately, no hold)"
         type: boolean
         default: true
 
@@ -22,9 +26,34 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  dispatch:
+  gate:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    outputs:
+      go: ${{ steps.gate.outputs.go }}
+      dispatch: ${{ steps.gate.outputs.dispatch }}
+    steps:
+      - name: Resolve session and daylight-saving pair
+        id: gate
+        run: |
+          case "${{ github.event.schedule }}" in
+            "15 3 * * *")  D=AM; OFF=2 ;;
+            "15 4 * * *")  D=AM; OFF=1 ;;
+            "45 17 * * *") D=PM; OFF=2 ;;
+            "45 18 * * *") D=PM; OFF=1 ;;
+            *)             D="${{ inputs.dispatch || 'auto' }}"; OFF="" ;;
+          esac
+          echo "dispatch=$D" >> "$GITHUB_OUTPUT"
+          if [ -z "$OFF" ]; then echo "go=true" >> "$GITHUB_OUTPUT"; exit 0; fi
+          CUR=$(TZ=Europe/Rome date +%z)   # +0200 in summer, +0100 in winter
+          if [ "$CUR" = "+0${OFF}00" ]; then GO=true; else GO=false; fi
+          echo "Europe/Rome is UTC$CUR; trigger is for UTC+$OFF -> go=$GO"
+          echo "go=$GO" >> "$GITHUB_OUTPUT"
+
+  dispatch:
+    needs: gate
+    if: needs.gate.outputs.go == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
     steps:
       - uses: actions/checkout@v4
 
@@ -49,15 +78,6 @@ jobs:
           key: briefing-state-${{ github.run_id }}
           restore-keys: briefing-state-
 
-      - name: Resolve dispatch
-        id: sel
-        run: |
-          case "${{ github.event.schedule }}" in
-            "10 5 * * *")  echo "dispatch=AM" >> "$GITHUB_OUTPUT" ;;
-            "40 16 * * *") echo "dispatch=PM" >> "$GITHUB_OUTPUT" ;;
-            *)             echo "dispatch=${{ inputs.dispatch || 'auto' }}" >> "$GITHUB_OUTPUT" ;;
-          esac
-
       - name: Generate and send
         env:
           # Claude Pro subscription token from `claude setup-token` (no API billing).
@@ -66,12 +86,16 @@ jobs:
           TELEGRAM_CHAT_IDS: ${{ secrets.TELEGRAM_CHAT_IDS }}
           BRIEFING_MODEL: ${{ vars.BRIEFING_MODEL || 'sonnet' }}
           BRIEFING_EFFORT: ${{ vars.BRIEFING_EFFORT || 'high' }}
+          BRIEFING_TZ: Europe/Rome
         run: |
-          SEND_FLAG=""
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.send }}" != "true" ]; then
-            SEND_FLAG="--no-send"
+          if [ "${{ github.event_name }}" = "schedule" ]; then
+            MODE="--on-schedule"          # hold and release at 06:00 / 20:30 local
+          elif [ "${{ inputs.send }}" = "true" ]; then
+            MODE=""                       # manual run: send as soon as ready
+          else
+            MODE="--no-send"
           fi
-          python -m briefing -v run "${{ steps.sel.outputs.dispatch }}" $SEND_FLAG
+          python -m briefing -v run "${{ needs.gate.outputs.dispatch }}" $MODE
 
       - name: Save cross-dispatch state
         if: always()

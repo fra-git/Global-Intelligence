@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import os
 from datetime import datetime, time, timezone
+from zoneinfo import ZoneInfo
 from enum import Enum
 
 
@@ -57,7 +59,7 @@ SPECS: dict[DispatchType, DispatchSpec] = {
         DispatchType.AM_PART_1,
         "Morning Macro, Geopolitics & Markets (overnight recap + European session preview)",
         ("macro", "geo", "energy"),
-        lookback_hours=14,
+        lookback_hours=11,
         required_sections=_PART1_SECTIONS,
         wants_market_snapshot=True,
         wants_calendar=True,
@@ -66,7 +68,7 @@ SPECS: dict[DispatchType, DispatchSpec] = {
         DispatchType.AM_PART_2,
         "Morning Tech, Space & Forward Catalyst Radar",
         ("tech", "space", "energy"),
-        lookback_hours=14,
+        lookback_hours=11,
         required_sections=_PART2_SECTIONS,
         wants_market_snapshot=True,
         wants_calendar=True,
@@ -75,7 +77,7 @@ SPECS: dict[DispatchType, DispatchSpec] = {
         DispatchType.PM_PART_1,
         "Evening European Wrap & Global Power Moves (EU close + day's geopolitical outcomes)",
         ("macro", "geo", "energy"),
-        lookback_hours=12,
+        lookback_hours=16,
         required_sections=_PART1_SECTIONS,
         wants_market_snapshot=True,
         wants_calendar=True,
@@ -84,16 +86,33 @@ SPECS: dict[DispatchType, DispatchSpec] = {
         DispatchType.PM_PART_2,
         "Evening Tech, Space, Industrial Shifts & Overnight Risks",
         ("tech", "space", "energy"),
-        lookback_hours=12,
+        lookback_hours=16,
         required_sections=_PART2_SECTIONS,
         wants_market_snapshot=True,
         wants_calendar=True,
     ),
 }
 
-# Send windows (UTC). AM lands before the 07:00 UTC European cash open;
-# PM lands after the 15:30–16:30 UTC European cash close (DST-dependent).
-SESSION_TIMES_UTC: dict[str, time] = {"AM": time(5, 30), "PM": time(17, 0)}
+# Delivery times on the reader's local clock (default Italy, DST-aware).
+# AM lands before the 09:00 CET European cash open; PM after the US close.
+TIMEZONE = ZoneInfo(os.environ.get("BRIEFING_TZ", "Europe/Rome"))
+DELIVERY_LOCAL: dict[str, time] = {"AM": time(6, 0), "PM": time(20, 30)}
+
+
+def local_now(now: datetime | None = None) -> datetime:
+    return (now or datetime.now(timezone.utc)).astimezone(TIMEZONE)
+
+
+def utc_offset_hours(now: datetime | None = None) -> float:
+    """Current UTC offset of the delivery timezone (Italy: 1 in winter, 2 in summer)."""
+    return local_now(now).utcoffset().total_seconds() / 3600
+
+
+def next_delivery(session: str, now: datetime | None = None) -> datetime:
+    """Today's delivery instant for `session` in UTC (may already be in the past)."""
+    loc = local_now(now)
+    target = datetime.combine(loc.date(), DELIVERY_LOCAL[session], tzinfo=TIMEZONE)
+    return target.astimezone(timezone.utc)
 
 
 def parts_for(selector: str) -> list[DispatchType]:
@@ -109,5 +128,5 @@ def parts_for(selector: str) -> list[DispatchType]:
 
 
 def session_for(now: datetime) -> str:
-    """AM before 12:00 UTC, PM after."""
-    return "AM" if now.astimezone(timezone.utc).hour < 12 else "PM"
+    """AM before 13:00 local, PM after."""
+    return "AM" if local_now(now).hour < 13 else "PM"

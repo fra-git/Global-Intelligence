@@ -5,7 +5,7 @@ An automated pipeline that writes executive intelligence briefings centred on th
 ## Architecture
 
 ```
-            ┌──────────────── GitHub Actions cron (05:10 / 16:40 UTC) ────────────────┐
+            ┌──────────────── GitHub Actions: 06:00 / 20:30 Italy ───────────────────┐
             │                                                                          │
  config/sources.yaml ──► ingest.py ──┐                                                 │
    (Tier-1 RSS feeds,     fetch ∥,   │                                                 │
@@ -49,12 +49,14 @@ The EU is the centre of gravity. The **US, China, Russia and BRICS+** each get t
 
 ## Schedule
 
-| Target (UTC) | Job | Dispatches |
+| Delivered (Italy time) | Session | Dispatches |
 |---|---|---|
-| ~05:30 | AM session | `AM_PART_1` → `AM_PART_2` |
-| ~17:00 | PM session | `PM_PART_1` → `PM_PART_2` |
+| **06:00** | AM | `AM_PART_1` → `AM_PART_2` (overnight recap, before the 09:00 European open) |
+| **20:30** | PM | `PM_PART_1` → `PM_PART_2` (EU close, US session, overnight risks) |
 
-Each session runs Part 1 then Part 2 in the same job, in that order. You can change the times in `.github/workflows/dispatch.yml`.
+GitHub's scheduler only runs on UTC and ignores daylight saving, so each session has two triggers: one for summer time (CEST, UTC+2) and one for winter time (CET, UTC+1). A small `gate` job checks Italy's current UTC offset and lets only the matching trigger run, so the switch in March and October is automatic. Each run starts about 45 minutes early at 05:15 / 19:45, generates both parts, and holds them until exactly 06:00 / 20:30. That absorbs GitHub's usual scheduling delay. Manual runs from the Actions tab send as soon as they're ready.
+
+To change the times, edit `DELIVERY_LOCAL` in `briefing/dispatch.py` and the four cron lines in `.github/workflows/dispatch.yml` (trigger about 45 min before, in UTC for both offsets). To follow another timezone, set `BRIEFING_TZ` and adjust the workflow's `TZ=Europe/Rome` check.
 
 ## Setup
 
@@ -86,7 +88,7 @@ To schedule with cron instead of Actions: `10 5 * * * cd /srv/gi && .venv/bin/py
 
 - **No API billing.** Runs count against your Claude Pro usage limits, which are shared with your own use of Claude and Claude Code and reset every 5 hours. Two sessions a day, each with two research runs of up to 12 web searches, should fit on Pro with `sonnet`. If you use Claude heavily around 05:30 or 17:00 UTC, an edition may hit the limit and go out as a headline digest.
 - `BRIEFING_MODEL=opus` gives stronger analysis but uses Pro limits much faster; `BRIEFING_EFFORT=medium` or `BRIEFING_WEB_SEARCH_MAX_USES=8` lower usage.
-- GitHub Actions: about 10 minutes a day, well inside the free allowance.
+- GitHub Actions: each session uses up to about an hour of runner time (generation plus the hold until delivery), roughly 2 hours a day in total. Public repos have unlimited minutes. Private repos get 2,000 free minutes a month, which this would exceed, so make the repo public or shorten the hold by moving the triggers later.
 - Every run's mode (`ai` or `digest`), any error, token usage and web tool calls are saved in `archive/<date>/<DISPATCH>.meta.json`.
 - `--no-web` turns research off: Claude then writes only from the feeds and market snapshot, using less of your plan but losing verified hard numbers.
 - The feed URLs in `config/sources.yaml` are publishers' public RSS endpoints, which change without notice. Run `check-feeds` after deploying and fix or remove any that fail. Reuters no longer publishes RSS, so its coverage comes from web search.

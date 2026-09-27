@@ -142,12 +142,9 @@ def run_dispatch(
         "sent_to": [],
     }
 
+    result = DispatchResult(dispatch, text, tg_len(text), meta)
     if opts.send:
-        telegram = telegram or Telegram(settings.telegram_bot_token)
-        if not settings.telegram_chat_ids:
-            raise ValueError("TELEGRAM_CHAT_IDS is not set")
-        for chat in settings.telegram_chat_ids:
-            meta["sent_to"].append({"chat": chat, "message_ids": telegram.send_briefing(chat, text)})
+        deliver(result, settings, telegram)
 
     archive(settings.archive_dir, dispatch.value, now, text, meta)
     if mode == "ai":
@@ -155,7 +152,20 @@ def run_dispatch(
         state.set_last(dispatch.value, text, now)
         state.mark_seen([it.key for it in items], now)
         state.save()
-    return DispatchResult(dispatch, text, tg_len(text), meta)
+    return result
+
+
+def deliver(result: DispatchResult, settings: Settings, telegram: Telegram | None = None) -> None:
+    """Post a generated briefing to every configured chat and record it in the archive."""
+    telegram = telegram or Telegram(settings.telegram_bot_token)
+    if not settings.telegram_chat_ids:
+        raise ValueError("TELEGRAM_CHAT_IDS is not set")
+    for chat in settings.telegram_chat_ids:
+        ids = telegram.send_briefing(chat, result.text)
+        result.meta["sent_to"].append({"chat": chat, "message_ids": ids,
+                                       "at": datetime.now(timezone.utc).isoformat()})
+    now = datetime.fromisoformat(result.meta["generated_at"])
+    archive(settings.archive_dir, result.dispatch.value, now, result.text, result.meta)
 
 
 def run_session(parts: list[DispatchType], settings: Settings, opts: RunOptions,

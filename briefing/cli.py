@@ -6,12 +6,14 @@ import argparse
 import json
 import logging
 import sys
+import time
 from datetime import datetime, timezone
 
 from briefing import ingest
 from briefing.config import Settings, load_sources
-from briefing.dispatch import SESSION_TIMES_UTC, SPECS, parts_for
-from briefing.pipeline import RunOptions, run_session
+from briefing.dispatch import (DELIVERY_LOCAL, SPECS, TIMEZONE, next_delivery, parts_for,
+                               utc_offset_hours)
+from briefing.pipeline import RunOptions, deliver, run_session
 from briefing.telegram import Telegram
 
 
@@ -22,16 +24,44 @@ def _parse_now(value: str | None) -> datetime | None:
     return dt if dt.tzinfo else dt.replace(tzinfo=timezone.utc)
 
 
+MAX_HOLD_S = 90 * 60
+
+
 def cmd_run(args) -> int:
     settings = Settings()
-    opts = RunOptions(send=not args.no_send, web=not args.no_web, markets=not args.no_markets,
-                      feeds=not args.no_feeds, print_prompt=args.print_prompt)
-    results = run_session(parts_for(args.dispatch), settings, opts, _parse_now(args.now))
+    parts = parts_for(args.dispatch)
+    hold = args.on_schedule and not args.no_send
+    opts = RunOptions(send=not args.no_send and not hold, web=not args.no_web,
+                      markets=not args.no_markets, feeds=not args.no_feeds,
+                      print_prompt=args.print_prompt)
+    results = run_session(parts, settings, opts, _parse_now(args.now))
+
+    if hold:
+        # Generated early to absorb scheduler lag; release at the exact local delivery time.
+        target = next_delivery(parts[0].session)
+        wait = (target - datetime.now(timezone.utc)).total_seconds()
+        if 0 < wait <= MAX_HOLD_S:
+            print(f"holding until {target.astimezone(TIMEZONE):%H:%M %Z} ({wait / 60:.0f} min)",
+                  file=sys.stderr)
+            time.sleep(wait)
+        for r in results:
+            deliver(r, settings)
+
     for r in results:
         print(f"\n===== {r.dispatch.value} ({r.chars} chars) =====\n{r.text}")
         print(json.dumps({k: r.meta[k] for k in ("mode", "error", "model", "web_tool_calls",
-                                                  "usage", "rewrites", "missing_sections")}, indent=2), file=sys.stderr)
+                                                  "usage", "rewrites", "missing_sections")},
+                         indent=2), file=sys.stderr)
     return 1 if any(r.meta["missing_sections"] for r in results) else 0
+
+
+def cmd_gate(args) -> int:
+    """Exit 0 if the delivery timezone currently has this UTC offset (DST-pair selection)."""
+    current = utc_offset_hours()
+    ok = abs(current - args.utc_offset) < 0.01
+    print(f"{TIMEZONE.key} is UTC{current:+g}; trigger is for UTC{args.utc_offset:+g} -> "
+          f"{'run' if ok else 'skip'}")
+    return 0 if ok else 1
 
 
 def cmd_check_feeds(args) -> int:
@@ -63,10 +93,10 @@ def cmd_test_telegram(args) -> int:
 
 
 def cmd_schedule(args) -> int:
-    for session, t in SESSION_TIMES_UTC.items():
+    for session, t in DELIVERY_LOCAL.items():
         for part in (1, 2):
             spec = SPECS[parts_for(f"{session}_PART_{part}")[0]]
-            print(f"{t:%H:%M} UTC  {spec.type.value:<10} {spec.title}")
+            print(f"{t:%H:%M} {TIMEZONE.key}  {spec.type.value:<10} {spec.title}")
     return 0
 
 
@@ -84,7 +114,13 @@ def main(argv: list[str] | None = None) -> int:
     r.add_argument("--no-markets", action="store_true", help="skip market snapshot")
     r.add_argument("--no-feeds", action="store_true", help="skip RSS ingestion")
     r.add_argument("--print-prompt", action="store_true", help="print the user message sent")
+    r.add_argument("--on-schedule", action="store_true",
+                   help="generate now, hold, and send at the session's local delivery time")
     r.set_defaults(func=cmd_run)
+
+    g = sub.add_parser("gate", help="exit 0 if the local UTC offset matches (for DST cron pairs)")
+    g.add_argument("--utc-offset", type=float, required=True)
+    g.set_defaults(func=cmd_gate)
 
     sub.add_parser("check-feeds", help="probe every configured RSS feed").set_defaults(
         func=cmd_check_feeds)
