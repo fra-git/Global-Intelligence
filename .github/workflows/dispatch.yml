@@ -1,23 +1,24 @@
 name: Intelligence Dispatch
 
-# Two sessions a day, delivered at 06:00 and 20:30 Italian time (Europe/Rome).
+# Two sessions a day, starting at 05:50 and 20:50 Italian time (Europe/Rome),
+# right when the owner's Claude Pro usage window resets. Briefings are sent as
+# soon as they are ready (~10–20 min later, plus GitHub's cron lag).
 # GitHub cron is UTC-only and ignores daylight saving, so each session has two
 # triggers (summer CEST = UTC+2, winter CET = UTC+1); the `gate` job lets only
-# the one matching Italy's current offset proceed. Runs start ~45 min early,
-# generate Part 1 then Part 2, and hold both until the exact delivery minute.
+# the one matching Italy's current offset proceed.
 on:
   schedule:
-    - cron: "15 3 * * *"    # AM, summer: 05:15 CEST -> deliver 06:00
-    - cron: "15 4 * * *"    # AM, winter: 05:15 CET  -> deliver 06:00
-    - cron: "45 17 * * *"   # PM, summer: 19:45 CEST -> deliver 20:30
-    - cron: "45 18 * * *"   # PM, winter: 19:45 CET  -> deliver 20:30
+    - cron: "50 3 * * *"    # AM, summer: 05:50 CEST
+    - cron: "50 4 * * *"    # AM, winter: 05:50 CET
+    - cron: "50 18 * * *"   # PM, summer: 20:50 CEST
+    - cron: "50 19 * * *"   # PM, winter: 20:50 CET
   workflow_dispatch:
     inputs:
       dispatch:
         description: "AM | PM | AM_PART_1 | AM_PART_2 | PM_PART_1 | PM_PART_2 | auto"
         default: auto
       send:
-        description: "Post to Telegram (immediately, no hold)"
+        description: "Post to Telegram"
         type: boolean
         default: true
 
@@ -36,10 +37,10 @@ jobs:
         id: gate
         run: |
           case "${{ github.event.schedule }}" in
-            "15 3 * * *")  D=AM; OFF=2 ;;
-            "15 4 * * *")  D=AM; OFF=1 ;;
-            "45 17 * * *") D=PM; OFF=2 ;;
-            "45 18 * * *") D=PM; OFF=1 ;;
+            "50 3 * * *")  D=AM; OFF=2 ;;
+            "50 4 * * *")  D=AM; OFF=1 ;;
+            "50 18 * * *") D=PM; OFF=2 ;;
+            "50 19 * * *") D=PM; OFF=1 ;;
             *)             D="${{ inputs.dispatch || 'auto' }}"; OFF="" ;;
           esac
           echo "dispatch=$D" >> "$GITHUB_OUTPUT"
@@ -53,7 +54,7 @@ jobs:
     needs: gate
     if: needs.gate.outputs.go == 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
 
@@ -88,11 +89,8 @@ jobs:
           BRIEFING_EFFORT: ${{ vars.BRIEFING_EFFORT || 'high' }}
           BRIEFING_TZ: Europe/Rome
         run: |
-          if [ "${{ github.event_name }}" = "schedule" ]; then
-            MODE="--on-schedule"          # hold and release at 06:00 / 20:30 local
-          elif [ "${{ inputs.send }}" = "true" ]; then
-            MODE=""                       # manual run: send as soon as ready
-          else
+          MODE=""
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.send }}" != "true" ]; then
             MODE="--no-send"
           fi
           python -m briefing -v run "${{ needs.gate.outputs.dispatch }}" $MODE

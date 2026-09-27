@@ -81,14 +81,10 @@ def test_region_quota_protects_non_eu_coverage():
     assert ru in quota and cn in quota and len(quota) == 10
 
 
-def test_italy_delivery_times_follow_dst():
-    from briefing.dispatch import next_delivery, session_for, utc_offset_hours
-    summer = datetime(2026, 7, 1, 3, 15, tzinfo=timezone.utc)   # 05:15 CEST
-    winter = datetime(2026, 12, 1, 4, 15, tzinfo=timezone.utc)  # 05:15 CET
+def test_italy_offsets_follow_dst():
+    from briefing.dispatch import session_for, utc_offset_hours
+    summer = datetime(2026, 7, 1, 3, 50, tzinfo=timezone.utc)   # 05:50 CEST
+    winter = datetime(2026, 12, 1, 4, 50, tzinfo=timezone.utc)  # 05:50 CET
     assert utc_offset_hours(summer) == 2 and utc_offset_hours(winter) == 1
-    assert next_delivery("AM", summer) == datetime(2026, 7, 1, 4, 0, tzinfo=timezone.utc)
-    assert next_delivery("AM", winter) == datetime(2026, 12, 1, 5, 0, tzinfo=timezone.utc)
-    assert next_delivery("PM", summer) == datetime(2026, 7, 1, 18, 30, tzinfo=timezone.utc)
-    assert next_delivery("PM", winter) == datetime(2026, 12, 1, 19, 30, tzinfo=timezone.utc)
-    assert session_for(summer) == "AM"
-    assert session_for(datetime(2026, 12, 1, 18, 45, tzinfo=timezone.utc)) == "PM"
+    assert session_for(summer) == "AM" and session_for(winter) == "AM"
+    assert session_for(datetime(2026, 12, 1, 19, 50, tzinfo=timezone.utc)) == "PM"  # 20:50 CET

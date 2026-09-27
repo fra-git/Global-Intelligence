@@ -93,10 +93,11 @@ SPECS: dict[DispatchType, DispatchSpec] = {
     ),
 }
 
-# Delivery times on the reader's local clock (default Italy, DST-aware).
-# AM lands before the 09:00 CET European cash open; PM after the US close.
+# Session start times on the reader's local clock (default Italy, DST-aware).
+# Aligned with the owner's Claude Pro usage reset so each run draws on a fresh
+# 5-hour window; briefings are sent as soon as they are generated (~10–20 min).
 TIMEZONE = ZoneInfo(os.environ.get("BRIEFING_TZ", "Europe/Rome"))
-DELIVERY_LOCAL: dict[str, time] = {"AM": time(6, 0), "PM": time(20, 30)}
+START_LOCAL: dict[str, time] = {"AM": time(5, 50), "PM": time(20, 50)}
 
 
 def local_now(now: datetime | None = None) -> datetime:
@@ -104,15 +105,8 @@ def local_now(now: datetime | None = None) -> datetime:
 
 
 def utc_offset_hours(now: datetime | None = None) -> float:
-    """Current UTC offset of the delivery timezone (Italy: 1 in winter, 2 in summer)."""
+    """Current UTC offset of the local timezone (Italy: 1 in winter, 2 in summer)."""
     return local_now(now).utcoffset().total_seconds() / 3600
-
-
-def next_delivery(session: str, now: datetime | None = None) -> datetime:
-    """Today's delivery instant for `session` in UTC (may already be in the past)."""
-    loc = local_now(now)
-    target = datetime.combine(loc.date(), DELIVERY_LOCAL[session], tzinfo=TIMEZONE)
-    return target.astimezone(timezone.utc)
 
 
 def parts_for(selector: str) -> list[DispatchType]:
