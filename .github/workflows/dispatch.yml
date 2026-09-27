@@ -1,0 +1,82 @@
+name: Intelligence Dispatch
+
+# Two sessions a day; each runs Part 1 then Part 2 in one job so Part 2 sees
+# Part 1 (de-duplication) and the market snapshot is fetched once.
+# GitHub cron can lag 5–20 min, so triggers sit ahead of the target send time.
+on:
+  schedule:
+    - cron: "10 5 * * *"    # AM session  -> lands ~05:30 UTC, before the European cash open
+    - cron: "40 16 * * *"   # PM session  -> lands ~17:00 UTC, after the European cash close
+  workflow_dispatch:
+    inputs:
+      dispatch:
+        description: "AM | PM | AM_PART_1 | AM_PART_2 | PM_PART_1 | PM_PART_2 | auto"
+        default: auto
+      send:
+        description: "Post to Telegram"
+        type: boolean
+        default: true
+
+concurrency:
+  group: intelligence-dispatch
+  cancel-in-progress: false
+
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - run: pip install -r requirements.txt
+
+      - name: Restore cross-dispatch state
+        uses: actions/cache/restore@v4
+        with:
+          path: state
+          key: briefing-state-${{ github.run_id }}
+          restore-keys: briefing-state-
+
+      - name: Resolve dispatch
+        id: sel
+        run: |
+          case "${{ github.event.schedule }}" in
+            "10 5 * * *")  echo "dispatch=AM" >> "$GITHUB_OUTPUT" ;;
+            "40 16 * * *") echo "dispatch=PM" >> "$GITHUB_OUTPUT" ;;
+            *)             echo "dispatch=${{ inputs.dispatch || 'auto' }}" >> "$GITHUB_OUTPUT" ;;
+          esac
+
+      - name: Generate and send
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_IDS: ${{ secrets.TELEGRAM_CHAT_IDS }}
+          BRIEFING_MODEL: ${{ vars.BRIEFING_MODEL || 'claude-opus-5' }}
+          BRIEFING_EFFORT: ${{ vars.BRIEFING_EFFORT || 'high' }}
+        run: |
+          SEND_FLAG=""
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.send }}" != "true" ]; then
+            SEND_FLAG="--no-send"
+          fi
+          python -m briefing -v run "${{ steps.sel.outputs.dispatch }}" $SEND_FLAG
+
+      - name: Save cross-dispatch state
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: state
+          key: briefing-state-${{ github.run_id }}
+
+      - name: Upload briefing archive
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: briefing-${{ github.run_id }}
+          path: archive/
+          retention-days: 90
+          if-no-files-found: ignore

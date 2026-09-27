@@ -1,0 +1,10 @@
+# Known scheduled catalysts, injected into the 24–48h Catalyst Radar.
+# Only events inside the next 48h (from dispatch time) are sent to the model.
+# Times are UTC, ISO-8601. Keep this list current; Claude also searches
+# official calendars (ECB, Fed, Eurostat) to fill gaps.
+#
+# - time: 2026-10-01T09:00Z
+#   event: Euro area flash HICP (Sep)
+#   note: Core consensus vs ECB path; a beat reprices Dec meeting.
+
+events: []

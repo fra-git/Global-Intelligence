@@ -1,0 +1,104 @@
+# Tier-1 source registry.
+#
+# allowed_domains: the ONLY domains Claude's web_search / web_fetch may touch.
+#   Subdomains are covered (europa.eu covers ecb.europa.eu, ec.europa.eu, eur-lex...).
+#   Max 64 entries (API limit).
+#
+# feeds: RSS/Atom feeds ingested before each dispatch as seed context.
+#   pillars: macro | geo | tech | space | energy  (routes items to Part 1 / Part 2)
+#   Feed URLs change without notice — run `python -m briefing check-feeds` to verify.
+#   A dead feed is logged and skipped; it never fails a dispatch.
+
+allowed_domains:
+  # Tier-1 financial
+  - ft.com
+  - bloomberg.com
+  - reuters.com
+  - wsj.com
+  - nikkei.com
+  - handelsblatt.com
+  # Tier-1 geopolitics / defense
+  - defenseone.com
+  - spacenews.com
+  - c4isrnet.com
+  - warontherocks.com
+  # Official institutions
+  - europa.eu          # EU Commission, ECB, Council, EUR-Lex
+  - federalreserve.gov
+  - bis.org
+  - imf.org
+  - esa.int
+  - spacechina.com     # CASC
+  # Think tanks
+  - bruegel.org
+  - csis.org
+  - iiss.org
+
+feeds:
+  # --- Tier-1 financial ---
+  - name: Bloomberg Markets
+    url: https://feeds.bloomberg.com/markets/news.rss
+    pillars: [macro]
+  - name: Bloomberg Politics
+    url: https://feeds.bloomberg.com/politics/news.rss
+    pillars: [geo]
+  - name: Bloomberg Technology
+    url: https://feeds.bloomberg.com/technology/news.rss
+    pillars: [tech]
+  - name: FT World
+    url: https://www.ft.com/world?format=rss
+    pillars: [geo]
+  - name: FT Markets
+    url: https://www.ft.com/markets?format=rss
+    pillars: [macro]
+  - name: FT Technology
+    url: https://www.ft.com/technology?format=rss
+    pillars: [tech]
+  - name: WSJ World
+    url: https://feeds.a.dj.com/rss/RSSWorldNews.xml
+    pillars: [geo]
+  - name: WSJ Markets
+    url: https://feeds.a.dj.com/rss/RSSMarketsMain.xml
+    pillars: [macro]
+  - name: Nikkei Asia
+    url: https://asia.nikkei.com/rss/feed/nar
+    pillars: [geo, tech]
+  - name: Handelsblatt
+    url: https://www.handelsblatt.com/contentexport/feed/schlagzeilen
+    pillars: [macro, energy]
+  # --- Tier-1 geopolitics / defense / space ---
+  - name: Defense One
+    url: https://www.defenseone.com/rss/all/
+    pillars: [geo, tech]
+  - name: SpaceNews
+    url: https://spacenews.com/feed/
+    pillars: [space]
+  - name: C4ISRNET
+    url: https://www.c4isrnet.com/arc/outboundfeeds/rss/?outputType=xml
+    pillars: [tech, space]
+  - name: War on the Rocks
+    url: https://warontherocks.com/feed/
+    pillars: [geo]
+  # --- Official institutions ---
+  - name: ECB Press
+    url: https://www.ecb.europa.eu/rss/press.html
+    pillars: [macro]
+  - name: Federal Reserve
+    url: https://www.federalreserve.gov/feeds/press_all.xml
+    pillars: [macro]
+  - name: BIS Central Bank Speeches
+    url: https://www.bis.org/doclist/cbspeeches.rss
+    pillars: [macro]
+  - name: IMF News
+    url: https://www.imf.org/en/News/rss?language=eng
+    pillars: [macro]
+  - name: ESA Space Transportation
+    url: https://www.esa.int/rssfeed/Our_Activities/Space_Transportation
+    pillars: [space]
+  # --- Think tanks ---
+  - name: Bruegel
+    url: https://www.bruegel.org/rss.xml
+    pillars: [macro, energy]
+  - name: CSIS Analysis
+    url: https://www.csis.org/analysis/feed
+    pillars: [geo, tech]
