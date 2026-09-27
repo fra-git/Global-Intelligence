@@ -1,8 +1,9 @@
 # Tier-1 source registry.
 #
-# allowed_domains: the ONLY domains Claude's web_search / web_fetch may touch.
+# allowed_domains: Tier-1 whitelist for Claude Code's web tools.
+#   WebFetch is hard-restricted to these (permission rules; anything else is denied).
+#   WebSearch is instructed to rely only on results from these domains.
 #   Subdomains are covered (europa.eu covers ecb.europa.eu, ec.europa.eu, eur-lex...).
-#   Max 64 entries (API limit).
 #
 # feeds: RSS/Atom feeds ingested before each dispatch as seed context.
 #   pillars: macro | geo | tech | space | energy  (routes items to Part 1 / Part 2)

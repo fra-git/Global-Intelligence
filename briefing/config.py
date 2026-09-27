@@ -19,11 +19,14 @@ def _env(name: str, default: str = "") -> str:
 
 @dataclass
 class Settings:
-    anthropic_model: str = field(default_factory=lambda: _env("BRIEFING_MODEL", "claude-opus-5"))
+    # Claude Code model alias. "sonnet" keeps four dispatches a day within Pro limits.
+    model: str = field(default_factory=lambda: _env("BRIEFING_MODEL", "sonnet"))
+    claude_bin: str = field(default_factory=lambda: _env("CLAUDE_BIN", "claude"))
+    claude_timeout_s: int = field(default_factory=lambda: int(_env("BRIEFING_TIMEOUT_S", "900")))
     effort: str = field(default_factory=lambda: _env("BRIEFING_EFFORT", "high"))
     max_chars: int = field(default_factory=lambda: int(_env("BRIEFING_MAX_CHARS", "3800")))
     web_search_max_uses: int = field(
-        default_factory=lambda: int(_env("BRIEFING_WEB_SEARCH_MAX_USES", "15"))
+        default_factory=lambda: int(_env("BRIEFING_WEB_SEARCH_MAX_USES", "12"))
     )
     telegram_bot_token: str = field(default_factory=lambda: _env("TELEGRAM_BOT_TOKEN"))
     telegram_chat_ids: list[str] = field(
@@ -51,7 +54,7 @@ def load_sources(path: Path = CONFIG_DIR / "sources.yaml") -> Sources:
     data = yaml.safe_load(path.read_text()) or {}
     domains = tuple(data.get("allowed_domains") or ())
     if not 1 <= len(domains) <= 64:
-        raise ValueError("allowed_domains must list 1–64 domains (web_search API limit)")
+        raise ValueError("allowed_domains must list 1–64 domains (kept small for the tool permission list)")
     feeds = tuple(
         Feed(f["name"], f["url"], tuple(f.get("pillars") or ())) for f in data.get("feeds") or ()
     )

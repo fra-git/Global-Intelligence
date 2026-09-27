@@ -1,9 +1,12 @@
-from datetime import datetime, timezone
+import json
+from datetime import datetime, timedelta, timezone
+
+import pytest
 from types import SimpleNamespace as NS
 
 from briefing.config import Settings
 from briefing.dispatch import DispatchType
-from briefing.llm import LLMResult, Writer, final_text
+from briefing.llm import LLMResult, Writer, WriterError
 from briefing.pipeline import RunOptions, run_dispatch
 
 NOW = datetime(2026, 9, 27, 17, 0, tzinfo=timezone.utc)
@@ -16,49 +19,51 @@ GOOD = """# PM INTELLIGENCE BRIEFING | PART 1/2
 📊 **3. Market Ledger & Institutional Sentiment**"""
 
 
-def test_final_text_ignores_narration_before_last_search():
-    content = [NS(type="text", text="Let me search."), NS(type="server_tool_use", id="1"),
-               NS(type="web_search_tool_result", tool_use_id="1"),
-               NS(type="text", text="# Brief"), NS(type="text", text=" body")]
-    assert final_text(content) == "# Brief body"
+def _proc(payload, code=0):
+    return NS(stdout=json.dumps(payload), stderr="", returncode=code)
 
 
-class _Stream:
-    def __init__(self, msg):
-        self.msg = msg
+def test_writer_builds_subscription_command_and_parses_json(monkeypatch):
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-should-never-be-used")
+    monkeypatch.setenv("CLAUDE_CODE_OAUTH_TOKEN", "oauth")
+    seen = {}
 
-    def __enter__(self):
-        return self
+    def runner(cmd, **kw):
+        seen["cmd"], seen["env"], seen["input"] = cmd, kw["env"], kw["input"]
+        return _proc({"result": GOOD, "is_error": False, "stop_reason": "end_turn",
+                      "session_id": "s1", "modelUsage": {"claude-sonnet-5": {}},
+                      "usage": {"output_tokens": 7,
+                                "server_tool_use": {"web_search_requests": 3,
+                                                    "web_fetch_requests": 1}}})
 
-    def __exit__(self, *a):
-        return False
-
-    def get_final_message(self):
-        return self.msg
-
-
-def _msg(stop, content):
-    usage = NS(input_tokens=10, output_tokens=5, cache_read_input_tokens=0,
-               cache_creation_input_tokens=0)
-    return NS(stop_reason=stop, content=content, usage=usage, model="claude-opus-5",
-              _request_id="req_1")
+    res = Writer("sonnet", "high", runner=runner).run(system="SYS", user="USER",
+                                                      allowed_domains=("ft.com",))
+    assert res.text == GOOD and res.searches == 4 and res.model == "claude-sonnet-5"
+    assert "ANTHROPIC_API_KEY" not in seen["env"] and seen["env"]["CLAUDE_CODE_OAUTH_TOKEN"]
+    cmd = seen["cmd"]
+    assert cmd[:2] == ["claude", "-p"] and seen["input"] == "USER"
+    assert "WebFetch(domain:ft.com)" in cmd and "WebFetch(domain:*.ft.com)" in cmd
+    assert cmd[cmd.index("--permission-mode") + 1] == "dontAsk"
 
 
-def test_writer_resumes_pause_turn():
-    calls = []
-    msgs = [_msg("pause_turn", [NS(type="server_tool_use", id="a"),
-                                NS(type="web_search_tool_result", tool_use_id="a")]),
-            _msg("end_turn", [NS(type="text", text=GOOD)])]
+def test_writer_without_domains_disables_tools():
+    cmd = Writer("sonnet", "high")._command("s", None, "medium")
+    assert cmd[cmd.index("--tools") + 1] == ""
 
-    def stream(**kw):
-        calls.append(kw)
-        return _Stream(msgs[len(calls) - 1])
 
-    client = NS(beta=NS(messages=NS(stream=stream)))
-    res = Writer("claude-opus-5", "high", client=client).run(system="s", user="u", tools=[{}])
-    assert res.text == GOOD and res.searches == 1
-    assert calls[1]["messages"][1]["role"] == "assistant"
-    assert calls[0]["fallbacks"] == "default" and calls[0]["thinking"] == {"type": "adaptive"}
+@pytest.mark.parametrize("payload,code", [
+    ({"result": "Claude usage limit reached", "is_error": True, "subtype": "error"}, 1),
+    ({"result": "", "is_error": False}, 0),
+])
+def test_writer_raises_on_failure(payload, code):
+    with pytest.raises(WriterError):
+        Writer("sonnet", "high", runner=lambda c, **k: _proc(payload, code)).run(system="s", user="u")
+
+
+def test_writer_raises_on_non_json():
+    bad = lambda c, **k: NS(stdout="Invalid API key", stderr="", returncode=1)
+    with pytest.raises(WriterError):
+        Writer("sonnet", "high", runner=bad).run(system="s", user="u")
 
 
 class FakeWriter:
@@ -67,7 +72,10 @@ class FakeWriter:
 
     def run(self, **kw):
         self.calls.append(kw)
-        return LLMResult(self.outputs.pop(0), "claude-opus-5", "end_turn", {"output_tokens": 1})
+        out = self.outputs.pop(0)
+        if isinstance(out, Exception):
+            raise out
+        return LLMResult(out, "claude-sonnet-5", "end_turn", {"output_tokens": 1})
 
 
 class FakeTelegram:
@@ -103,7 +111,7 @@ def test_pipeline_compresses_overlong_output(tmp_path):
     r = run_dispatch(DispatchType.PM_PART_1, NOW, _settings(tmp_path), OPTS, writer=w,
                      telegram=FakeTelegram())
     assert r.text == GOOD and r.meta["rewrites"][0].startswith("compress")
-    assert "tools" not in w.calls[1] or w.calls[1].get("tools") is None
+    assert w.calls[1].get("allowed_domains") is None
 
 
 def test_pipeline_repairs_missing_section(tmp_path):
@@ -112,3 +120,21 @@ def test_pipeline_repairs_missing_section(tmp_path):
     r = run_dispatch(DispatchType.PM_PART_1, NOW, _settings(tmp_path), OPTS, writer=w,
                      telegram=FakeTelegram())
     assert r.meta["missing_sections"] == [] and r.meta["rewrites"][0].startswith("repair")
+
+
+def test_pipeline_falls_back_to_headline_digest(tmp_path, monkeypatch):
+    from briefing import ingest
+    from briefing.ingest import Item, score
+
+    t = "Kremlin reroutes Urals crude as EU sanctions bite"
+    item = Item("FT", t, "https://ft.com/x", NOW - timedelta(hours=1), "", ("geo",), score(t, ""))
+    monkeypatch.setattr(ingest, "collect", lambda *a, **k: ([item], {"FT": "ok (1)"}))
+    tg = FakeTelegram()
+    w = FakeWriter([WriterError("usage limit reached")])
+    opts = RunOptions(send=True, web=True, markets=False, feeds=True)
+    r = run_dispatch(DispatchType.PM_PART_1, NOW, _settings(tmp_path), opts, writer=w, telegram=tg)
+    assert r.meta["mode"] == "digest" and "usage limit" in r.meta["error"]
+    assert r.text.startswith("# PM INTELLIGENCE BRIEFING | PART 1/2")
+    assert "🇷🇺 **Russia**" in r.text and t in r.text
+    assert tg.sent and len(w.calls) == 1  # no rewrite attempts in digest mode
+    assert not (tmp_path / "state" / "state.json").exists()

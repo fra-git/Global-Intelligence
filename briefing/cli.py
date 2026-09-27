@@ -29,8 +29,8 @@ def cmd_run(args) -> int:
     results = run_session(parts_for(args.dispatch), settings, opts, _parse_now(args.now))
     for r in results:
         print(f"\n===== {r.dispatch.value} ({r.chars} chars) =====\n{r.text}")
-        print(json.dumps({k: r.meta[k] for k in ("model", "web_tool_calls", "usage", "rewrites",
-                                                  "missing_sections")}, indent=2), file=sys.stderr)
+        print(json.dumps({k: r.meta[k] for k in ("mode", "error", "model", "web_tool_calls",
+                                                  "usage", "rewrites", "missing_sections")}, indent=2), file=sys.stderr)
     return 1 if any(r.meta["missing_sections"] for r in results) else 0
 
 
@@ -80,7 +80,7 @@ def main(argv: list[str] | None = None) -> int:
                    help="AM | PM | AM_PART_1 | AM_PART_2 | PM_PART_1 | PM_PART_2 | auto")
     r.add_argument("--now", help="override dispatch time (ISO-8601, UTC)")
     r.add_argument("--no-send", action="store_true", help="do not post to Telegram")
-    r.add_argument("--no-web", action="store_true", help="disable web_search/web_fetch")
+    r.add_argument("--no-web", action="store_true", help="disable WebSearch/WebFetch")
     r.add_argument("--no-markets", action="store_true", help="skip market snapshot")
     r.add_argument("--no-feeds", action="store_true", help="skip RSS ingestion")
     r.add_argument("--print-prompt", action="store_true", help="print the user message sent")

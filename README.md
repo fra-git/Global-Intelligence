@@ -1,6 +1,6 @@
 # Global Intelligence
 
-An automated pipeline that writes executive intelligence briefings centred on the EU and posts them to Telegram. It sends **four dispatches a day** in two sessions (AM and PM, each Part 1 and Part 2). The writing is done by Claude with web research limited to Tier-1 sources. Every briefing must follow a fixed template and stay under 3,800 characters.
+An automated pipeline that writes executive intelligence briefings centred on the EU and posts them to Telegram. It sends **four dispatches a day** in two sessions (AM and PM, each Part 1 and Part 2). The writing is done by **Claude Code running on a Claude Pro subscription** (no API billing), with web research limited to Tier-1 sources. Every briefing must follow a fixed template and stay under 3,800 characters. If Claude is unavailable (plan limit reached, expired token, outage), that edition goes out as an **AI-free headline digest** instead.
 
 ## Architecture
 
@@ -13,12 +13,12 @@ An automated pipeline that writes executive intelligence briefings centred on th
                           dedupe,    │                                                 │
                           rank       ▼                                                 │
  markets.py ─────────────────► prompt.py ──► llm.py ──────────► postprocess.py         │
-   (EUR/USD, Brent, TTF,        user turn     Claude + web_search  strip, validate     │
-    VIX, indices, UST10Y)       (volatile)    + web_fetch limited  template, length    │
- config/calendar.yaml ────────►      ▲        to allowed_domains      │   ▲            │
-   (next-48h catalysts)              │        system prompt cached    │   │ repair /   │
- state.py ───────────────────────────┘        pause_turn + refusal    │   │ compress   │
-   (prior dispatches, seen items)             fallback handled        ▼   │ (≤2 passes)│
+   (EUR/USD, Brent, TTF,        user turn     `claude -p` on       strip, validate     │
+    VIX, indices, UST10Y)       (volatile)    Pro subscription     template, length    │
+ config/calendar.yaml ────────►      ▲        WebSearch + WebFetch    │   ▲            │
+   (next-48h catalysts)              │        (Tier-1 domains only)   │   │ repair /   │
+ state.py ───────────────────────────┘        on failure:             │   │ compress   │
+   (prior dispatches, seen items)             digest.py (option C)    ▼   │ (≤2 passes)│
                                                                    telegram.py         │
                                                           Markdown → Telegram HTML,    │
                                                           plain-text fallback          │
@@ -32,7 +32,8 @@ An automated pipeline that writes executive intelligence briefings centred on th
 | Ingestion | `briefing/ingest.py` | Pulls feeds in parallel. Keeps only items inside the dispatch's time window, merges the same story from different outlets, and ranks items higher when they carry hard numbers or an EU link. A dead feed is logged and skipped. |
 | Market anchors | `briefing/markets.py` | Delayed prices, kept in their own `<market_snapshot>` block so market pricing never mixes with official facts. |
 | Prompt | `briefing/prompt.py` + `prompts/system_prompt.md` | The system prompt is identical on every call, so it can be cached. The per-run inputs (`DISPATCH_TYPE`, `DATETIME`, feed items, market data, calendar, earlier dispatches) go in the user turn, and feed text is marked as untrusted data. |
-| Research & writing | `briefing/llm.py` | Uses `claude-opus-5` with adaptive thinking and effort `high`, and server-side refusal fallback (`fallbacks: "default"`). Paused turns are resumed. Only the final answer text is kept, not the model's narration between searches. |
+| Research & writing | `briefing/llm.py` | Runs Claude Code headless (`claude -p`), signed in with your Pro subscription token; `ANTHROPIC_API_KEY` is stripped so a run can never bill an API account. `WebFetch` is locked by permission rules to the whitelisted domains (anything else is denied); `WebSearch` is told to use only Tier-1 results. Runs in an empty scratch folder so no project settings leak in. |
+| Fallback (option C) | `briefing/digest.py` | If Claude Code fails, sends ranked Tier-1 headlines grouped by actor (Part 1) or by sector (Part 2), plus the market snapshot, clearly labelled as a digest. Digest items stay available for the next AI edition. |
 | Quality gate | `briefing/postprocess.py`, `pipeline.py` | Strips `<thinking>` tags and preambles. Checks that every template section and the AM/PM label are present, and measures length the way Telegram does (UTF-16 units). Up to two tool-free rewrite passes (repair or compress); after that, a trim on a line boundary as a last resort. |
 | Delivery | `briefing/telegram.py` | Converts `**bold**` / `*italic*` to Telegram HTML so special characters can't break the message. Falls back to plain text if Telegram rejects the HTML, and posts to several chats if configured. |
 | Memory | `briefing/state.py` | Part 2 sees Part 1, and each edition sees the previous one (AM↔PM), so items aren't repeated. Items already used within 36h are skipped. |
@@ -58,10 +59,11 @@ Each session runs Part 1 then Part 2 in the same job, in that order. You can cha
 ## Setup
 
 1. **Telegram:** create a bot with @BotFather and add it as an admin of your channel. Note the channel's `@name` or numeric id.
-2. **Repository secrets** (Settings → Secrets and variables → Actions): `ANTHROPIC_API_KEY`, `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_IDS` (comma-separated).
-   Optional repository **variables**: `BRIEFING_MODEL` (default `claude-opus-5`) and `BRIEFING_EFFORT` (default `high`).
-3. **Check it:** in Actions → *Intelligence Dispatch* → *Run workflow*, set `dispatch=PM` and untick `send`. Read the result in the uploaded archive artifact.
-4. Keep `config/calendar.yaml` up to date with the week's known catalysts (ECB and Fed meetings, HICP, auctions).
+2. **Claude subscription token:** on your own computer, install Claude Code (`npm install -g @anthropic-ai/claude-code`), run `claude setup-token`, sign in with your Pro account and copy the long-lived token it prints.
+3. **Repository secrets** (Settings → Secrets and variables → Actions): `CLAUDE_CODE_OAUTH_TOKEN`, `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_IDS` (comma-separated).
+   Optional repository **variables**: `BRIEFING_MODEL` (default `sonnet`) and `BRIEFING_EFFORT` (default `high`). Do **not** add an `ANTHROPIC_API_KEY`.
+4. **Check it:** in Actions → *Intelligence Dispatch* → *Run workflow*, set `dispatch=PM` and untick `send`. Read the result in the uploaded archive artifact.
+5. Keep `config/calendar.yaml` up to date with the week's known catalysts (ECB and Fed meetings, HICP, auctions).
 
 ### Running locally
 
@@ -82,6 +84,10 @@ To schedule with cron instead of Actions: `10 5 * * * cd /srv/gi && .venv/bin/py
 
 ## Cost and controls
 
-- A dispatch is one research call (up to 15 web searches plus some fetches) and 0–2 short rewrite calls. Token usage and request IDs are saved in `archive/<date>/<DISPATCH>.meta.json`.
-- `--no-web` turns research off: Claude then writes only from the feeds and market snapshot. Cheaper, but you lose the verified hard numbers.
+- **No API billing.** Runs count against your Claude Pro usage limits, which are shared with your own use of Claude and Claude Code and reset every 5 hours. Two sessions a day, each with two research runs of up to 12 web searches, should fit on Pro with `sonnet`. If you use Claude heavily around 05:30 or 17:00 UTC, an edition may hit the limit and go out as a headline digest.
+- `BRIEFING_MODEL=opus` gives stronger analysis but uses Pro limits much faster; `BRIEFING_EFFORT=medium` or `BRIEFING_WEB_SEARCH_MAX_USES=8` lower usage.
+- GitHub Actions: about 10 minutes a day, well inside the free allowance.
+- Every run's mode (`ai` or `digest`), any error, token usage and web tool calls are saved in `archive/<date>/<DISPATCH>.meta.json`.
+- `--no-web` turns research off: Claude then writes only from the feeds and market snapshot, using less of your plan but losing verified hard numbers.
 - The feed URLs in `config/sources.yaml` are publishers' public RSS endpoints, which change without notice. Run `check-feeds` after deploying and fix or remove any that fail. Reuters no longer publishes RSS, so its coverage comes from web search.
+- The `claude setup-token` token is long-lived but can expire or be revoked. When it does, every edition becomes a digest (see `mode` in the metadata) until you generate a new one and update the secret.

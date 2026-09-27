@@ -6,10 +6,10 @@ import logging
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 
-from briefing import ingest, markets
+from briefing import digest, ingest, markets
 from briefing.config import Settings, load_calendar, load_sources, load_system_prompt
 from briefing.dispatch import SPECS, DispatchType
-from briefing.llm import Writer, web_tools
+from briefing.llm import Writer, WriterError
 from briefing.postprocess import clean, hard_trim, missing_sections, tg_len
 from briefing.prompt import COMPRESS_INSTRUCTION, REPAIR_INSTRUCTION, build_user_message
 from briefing.state import State, archive, prior_context
@@ -72,19 +72,31 @@ def run_dispatch(
     user = build_user_message(
         spec, now, items, market_block, load_calendar(),
         prior_context(state, dispatch.value, now), settings.max_chars,
+        settings.web_search_max_uses,
     )
     if opts.print_prompt:
         print(user)
 
-    writer = writer or Writer(settings.anthropic_model, settings.effort)
-    tools = web_tools(sources.allowed_domains, settings.web_search_max_uses) if opts.web else None
-    res = writer.run(system=system, user=user, tools=tools)
-    text = clean(res.text)
-    usage = dict(res.usage)
-    rewrites = []
+    writer = writer or Writer(settings.model, settings.effort, binary=settings.claude_bin,
+                              timeout_s=settings.claude_timeout_s)
+    domains = sources.allowed_domains if opts.web else None
+    rewrites: list[str] = []
+    usage: dict = {}
+    model, stop_reason, tool_calls, request_ids, error = "", "", 0, [], None
+    try:
+        res = writer.run(system=system, user=user, allowed_domains=domains)
+        text = clean(res.text)
+        usage, model, stop_reason = dict(res.usage), res.model, res.stop_reason
+        tool_calls, request_ids = res.searches, list(res.request_ids)
+        mode = "ai"
+    except WriterError as exc:
+        # Option C: subscription limit hit, token expired, outage -> headline digest.
+        log.error("%s: Claude Code unavailable (%s); sending headline digest", dispatch.value, exc)
+        text = digest.build(spec, now, items, market_block, settings.max_chars)
+        mode, error = "digest", str(exc)
 
     # Enforce template and length with targeted rewrites (no tools: facts are fixed now).
-    for _ in range(MAX_REWRITES):
+    for _ in range(MAX_REWRITES if mode == "ai" else 0):
         missing = missing_sections(text, spec)
         n = tg_len(text)
         if missing:
@@ -97,7 +109,12 @@ def run_dispatch(
             rewrites.append(f"compress: {n}")
         else:
             break
-        fix = writer.run(system=system, user=instr, effort="medium", max_tokens=16000)
+        try:
+            fix = writer.run(system=system, user=instr, effort="medium")
+        except WriterError as exc:
+            log.warning("rewrite failed (%s); keeping current draft", exc)
+            rewrites.append("rewrite_failed")
+            break
         for k, v in fix.usage.items():
             usage[k] = usage.get(k, 0) + v
         text = clean(fix.text) or text
@@ -110,16 +127,18 @@ def run_dispatch(
     meta = {
         "dispatch": dispatch.value,
         "generated_at": now.isoformat(),
-        "model": res.model,
-        "stop_reason": res.stop_reason,
-        "web_tool_calls": res.searches,
+        "mode": mode,
+        "error": error,
+        "model": model,
+        "stop_reason": stop_reason,
+        "web_tool_calls": tool_calls,
         "usage": usage,
-        "request_ids": res.request_ids,
+        "session_ids": request_ids,
         "chars_utf16": tg_len(text),
         "feed_items": len(items),
         "feed_status": feed_status,
         "rewrites": rewrites,
-        "missing_sections": missing_sections(text, spec),
+        "missing_sections": missing_sections(text, spec) if mode == "ai" else [],
         "sent_to": [],
     }
 
@@ -131,9 +150,11 @@ def run_dispatch(
             meta["sent_to"].append({"chat": chat, "message_ids": telegram.send_briefing(chat, text)})
 
     archive(settings.archive_dir, dispatch.value, now, text, meta)
-    state.set_last(dispatch.value, text, now)
-    state.mark_seen([it.key for it in items], now)
-    state.save()
+    if mode == "ai":
+        # A digest is not analysis: leave its items available to the next AI edition.
+        state.set_last(dispatch.value, text, now)
+        state.mark_seen([it.key for it in items], now)
+        state.save()
     return DispatchResult(dispatch, text, tg_len(text), meta)
 
 

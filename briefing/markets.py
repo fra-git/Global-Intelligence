@@ -3,7 +3,7 @@
 These are *prices*, not facts about policy; the prompt keeps them in a
 separate block so the model never blends them with official announcements.
 Sovereign spreads (BTP-Bund, OAT-Bund) are not reliably available from free
-quote feeds, so the model verifies them from Tier-1 sources via web_search.
+quote feeds, so the model verifies them from Tier-1 sources via web search.
 """
 
 from __future__ import annotations
@@ -73,7 +73,7 @@ def snapshot() -> list[Quote]:
 
 def render(quotes: list[Quote]) -> str:
     if not quotes:
-        return "(unavailable — verify all levels via web_search)"
+        return "(unavailable — verify all levels via web search)"
     lines = []
     for q in quotes:
         chg = f" ({q.change_pct:+.2f}% d/d)" if q.change_pct is not None else ""
