@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass
-from datetime import datetime, time, timezone
+from datetime import datetime, time, timedelta, timezone
 from enum import Enum
 from zoneinfo import ZoneInfo
 
@@ -295,9 +295,23 @@ def utc_offset_hours(now: datetime | None = None) -> float:
     return local_now(now).utcoffset().total_seconds() / 3600
 
 
+def slot_for(now: datetime) -> tuple[str, str]:
+    """The session slot a moment belongs to, as (session, local date).
+
+    AM runs from the morning start until the evening start; PM from the evening
+    start until the next morning start, so a PM run after midnight still belongs
+    to the previous day's evening.
+    """
+    loc = local_now(now)
+    t = loc.time()
+    if START_LOCAL["AM"] <= t < START_LOCAL["PM"]:
+        return "AM", f"{loc.date()}"
+    day = loc.date() if t >= START_LOCAL["PM"] else loc.date() - timedelta(days=1)
+    return "PM", f"{day}"
+
+
 def session_for(now: datetime) -> str:
-    """AM before 13:00 local, PM after."""
-    return "AM" if local_now(now).hour < 13 else "PM"
+    return slot_for(now)[0]
 
 
 def edition_for(selector: str, now: datetime) -> Edition:

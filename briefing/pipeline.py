@@ -9,7 +9,7 @@ from datetime import datetime, timezone
 
 from briefing import digest, ingest, markets
 from briefing.config import Settings, load_calendar, load_sources, load_system_prompt
-from briefing.dispatch import EDITOR, MARKETS, SPECS, Edition, EditionSpec, local_now
+from briefing.dispatch import EDITOR, MARKETS, SPECS, Edition, EditionSpec, local_now, slot_for
 from briefing.llm import Writer, WriterError
 from briefing.postprocess import clean, missing, split_sections, word_count
 from briefing.prompt import (REPAIR_INSTRUCTION, build_desk_message, build_editor_message,
@@ -54,7 +54,7 @@ def write_sections(writer: Writer, system: str, user: str, headings: list[str],
         log.error("desk run failed: %s", exc)
         return {}, {"mode": "digest", "error": str(exc)}
     text = clean(res.text)
-    info = {"mode": "ai", "model": res.model, "web_tool_calls": res.searches,
+    info = {"mode": "ai", "model": res.model, "web_tool_calls": res.searches, "turns": res.turns,
             "usage": dict(res.usage), "session_ids": list(res.request_ids), "repair": None}
     gaps = missing(text, headings)
     if gaps:
@@ -102,10 +102,14 @@ def run_edition(
     spec = SPECS[edition]
     state = State(settings.state_dir)
     loc = local_now(now)
-    delivered_key = f"{loc:%Y-%m-%d}:{edition.session}"
-    if opts.send and not opts.force and state.was_delivered(delivered_key):
+    # Only a run inside its own session slot (e.g. the evening edition between
+    # 20:50 and 05:50) counts as that session's delivery; off-schedule test runs
+    # neither skip nor block a scheduled edition.
+    slot_session, slot_day = slot_for(now)
+    delivered_key = f"{slot_day}:{slot_session}" if slot_session == edition.session else None
+    if opts.send and not opts.force and delivered_key and state.was_delivered(delivered_key):
         log.warning("%s session of %s already delivered; skipping (use --force to resend)",
-                    edition.session, f"{loc:%Y-%m-%d}")
+                    slot_session, slot_day)
         return EditionResult(edition, skipped=True)
 
     sources = load_sources()
@@ -183,11 +187,16 @@ def run_edition(
         log.error("PDF rendering failed: %s", exc)
 
     summary = bodies.get(spec.summary_heading, "")
+    usage_total: dict[str, int] = {}
+    for info in desk_meta.values():
+        for k, v in info.get("usage", {}).items():
+            usage_total[k] = usage_total.get(k, 0) + v
     meta = {
         "edition": edition.value,
         "generated_at": now.isoformat(),
         "mode": mode,
         "desks": desk_meta,
+        "usage_total": usage_total,
         "fallback_sections": fallbacks,
         "words": word_count(markdown),
         "pages": pages,
@@ -200,7 +209,8 @@ def run_edition(
 
     if opts.send:
         deliver(result, spec, now, settings, telegram)
-        state.mark_delivered(delivered_key, now)
+        if delivered_key:
+            state.mark_delivered(delivered_key, now)
         archive(settings.archive_dir, edition.value, now, markdown, meta, pdf)
 
     if mode != "digest":

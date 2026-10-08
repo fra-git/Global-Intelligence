@@ -34,7 +34,7 @@ The **Sunday Weekly Deep-Dive** covers the same sections for the whole week, and
                               ▼          │
                  GitHub Actions: Intelligence Dispatch ◄─┘
                               │
- config/sources.yaml ──► ingest.py ── 64 feeds fetched in parallel, windowed, de-duplicated,
+ config/sources.yaml ──► ingest.py ── 59 feeds fetched in parallel, windowed, de-duplicated,
                               │       ranked, tagged by region (IT, EU, US, CN, RU, ME, IP, AF,
                               │       LA, BRICS) and topic (defence, cyber, tech, space, econ, energy)
  markets.py ──────────────────┤
@@ -56,7 +56,7 @@ The **Sunday Weekly Deep-Dive** covers the same sections for the whole week, and
 | Stage | Module | What it guarantees |
 |---|---|---|
 | Editions and sections | `briefing/dispatch.py` | Defines every section, which desk writes it, its guidance and target length. Edit here to add, remove or resize sections. |
-| Source registry | `config/sources.yaml` | 64 RSS feeds (Tier-1 wires and papers, Italian outlets, regional, defence, cyber, tech, space, official and think-tank). Web fetches are hard-limited to the whitelisted domains. |
+| Source registry | `config/sources.yaml` | 59 RSS feeds (Tier-1 wires and papers, Italian outlets, regional, defence, cyber, tech, space, official and think-tank). Web fetches are hard-limited to the whitelisted domains. |
 | Ingestion | `briefing/ingest.py` | Each desk gets the items matching its regions/topics, with a guaranteed share per region so busy stories can't crowd out quieter places like Africa or Latin America. A dead feed is skipped. |
 | Research & writing | `briefing/llm.py`, `briefing/prompt.py`, `prompts/system_prompt.md` | Each desk runs Claude Code headless on your Pro subscription (`ANTHROPIC_API_KEY` is stripped), verifies facts with web research, and writes its sections. Feed text is marked as untrusted data. |
 | Quality gate | `briefing/postprocess.py`, `briefing/pipeline.py` | Strips non-report text, checks every section is present (one repair pass if not), and fills any still-missing section with a labelled headline digest. |

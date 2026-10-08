@@ -10,6 +10,8 @@
 #         topics   defence | cyber | tech | space | energy | econ
 #   Items are also tagged automatically from their headline; feed tags are added on top
 #   (e.g. everything from an Italian outlet is tagged "it"). Tags route items to desks.
+#   Some publishers block automated readers (IMF, Bruegel, ECFR, CSIS); they stay
+#   reachable through web research via allowed_domains.
 #   Feed URLs change without notice — run `python -m briefing check-feeds` to verify.
 #   A dead feed is logged and skipped; it never fails an edition.
 
@@ -253,9 +255,6 @@ feeds:
   - name: War on the Rocks
     url: https://warontherocks.com/feed/
     tags: [defence]
-  - name: Kyiv Independent
-    url: https://kyivindependent.com/rss/
-    tags: [ru]
   - name: The Record (cyber)
     url: https://therecord.media/feed
     tags: [cyber]
@@ -286,16 +285,3 @@ feeds:
   - name: BIS Central Bank Speeches
     url: https://www.bis.org/doclist/cbspeeches.rss
     tags: [econ]
-  - name: IMF News
-    url: https://www.imf.org/en/News/rss?language=eng
-    tags: [econ]
-  # --- Think tanks ---
-  - name: Bruegel
-    url: https://www.bruegel.org/rss.xml
-    tags: [eu, econ]
-  - name: CSIS Analysis
-    url: https://www.csis.org/analysis/feed
-    tags: []
-  - name: ECFR
-    url: https://ecfr.eu/feed/
-    tags: [eu]
