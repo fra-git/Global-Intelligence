@@ -38,29 +38,80 @@ _SIGNAL_TERMS = {
 }
 
 
-# Actor tagging. An item can carry several regions; tags drive per-region quotas
-# so EU-heavy news flow cannot crowd the US/China/Russia/BRICS+ picture out.
-REGIONS = ("eu", "us", "cn", "ru", "brics")
-_REGION_TERMS: dict[str, tuple[str, ...]] = {
-    "eu": ("ecb", "eurozone", "euro area", "european", "brussels", "germany", "german", "berlin",
-           "france", "french", "paris", "italy", "italian", "rome", "spain", "poland", "netherlands",
-           "lagarde", "von der leyen", "bund", "btp", " eu ", "eu's", "nato"),
-    "us": ("united states", "u.s.", " us-", "america", "washington", "white house", "trump",
-           "congress", "senate", "pentagon", "fed ", "federal reserve", "powell", "treasury",
-           "wall street", "ustr", "commerce department", "nasdaq", "s&p"),
+# Region and topic tagging. An item can carry several tags; each desk receives
+# the items matching its tags, with a guaranteed share per tag so a busy story
+# (e.g. EU news) cannot crowd out quieter regions (e.g. Africa, Latin America).
+_TAG_TERMS: dict[str, tuple[str, ...]] = {
+    # --- regions ---
+    "it": ("italy", "italian", " rome", "meloni", "mattarella", "milan", "btp", "bank of italy",
+           "banca d'italia", "istat", "tajani", "salvini", "schlein", "giorgetti", "palazzo chigi",
+           "unicredit", "intesa sanpaolo", "stellantis", "leonardo", "generali", " eni ", "enel",
+           "governo", "parlamento", "italia"),
+    "eu": ("european union", " eu ", "eu's", "eu-", "brussels", "european commission",
+           "von der leyen", "ecb", "lagarde", "eurozone", "euro area", "european parliament",
+           "germany", "german", "berlin", "merz", "france", "french", "paris", "macron", "spain",
+           "spanish", "madrid", "poland", "polish", "warsaw", "netherlands", "dutch", "belgium",
+           "austria", "greece", "greek", "portugal", "sweden", "finland", "denmark", "norway",
+           "baltic", "estonia", "latvia", "lithuania", "czech", "hungary", "orban", "slovakia",
+           "romania", "bulgaria", "croatia", "serbia", "balkans", "ireland", "switzerland",
+           " uk ", "britain", "british", "london", "starmer", "europe"),
+    "us": ("united states", "u.s.", " us-", "washington", "white house",
+           "trump", "congress", "senate", "pentagon", "fed ", "federal reserve", "powell",
+           "treasury", "wall street", "ustr", "commerce department", "nasdaq", "s&p"),
     "cn": ("china", "chinese", "beijing", "xi jinping", "pboc", "yuan", "renminbi", "mofcom",
-           "shanghai", "shenzhen", "hong kong", "taiwan", "huawei", "smic", "casc"),
+           "shanghai", "shenzhen", "hong kong", "huawei", "smic", "casc", "taiwan strait"),
     "ru": ("russia", "russian", "moscow", "kremlin", "putin", "rouble", "ruble", "gazprom",
-           "rosneft", "urals", "ukraine", "kyiv", "shadow fleet"),
-    "brics": ("brics", "india", "indian", "modi", "rbi", "brazil", "lula", "south africa",
-              "saudi", "uae", "emirates", "iran", "egypt", "ethiopia", "indonesia", "turkey",
-              "opec", "new development bank", "global south", "rupee"),
+           "rosneft", "urals", "ukraine", "ukrainian", "kyiv", "zelensky", "belarus",
+           "shadow fleet"),
+    "me": ("israel", "gaza", "west bank", "hamas", "hezbollah", "lebanon", "iran", "tehran",
+           "saudi", "riyadh", "uae", "emirates", "abu dhabi", "dubai", "qatar", "doha", "syria",
+           "iraq", "yemen", "houthi", "red sea", "turkey", "turkish", "erdogan", "ankara",
+           "egypt", "jordan", "gulf", " oman", "kuwait", "bahrain", "middle east"),
+    "ip": ("japan", "japanese", "tokyo", "south korea", "korean", "seoul", "north korea",
+           "pyongyang", "taiwan", "taipei", "india", "indian", "modi", "new delhi", "pakistan",
+           "asean", "indonesia", "vietnam", "philippines", "australia", "thailand", "malaysia",
+           "singapore", "bangladesh", "south china sea", "indo-pacific", "asia"),
+    "af": ("africa", "african", "nigeria", "kenya", "ethiopia", "sahel", " mali ", " mali's", "malian", " niger ",
+           "burkina", "sudan", "congo", "drc", "morocco", "algeria", "tunisia", "libya",
+           "senegal", "ghana", "angola", "mozambique", "somalia", "rwanda", "zambia",
+           "zimbabwe", "tanzania", "uganda", "cameroon", " chad "),
+    "la": ("latin america", "brazil", "brazilian", "lula", "mexico", "mexican", "sheinbaum",
+           "argentina", "milei", "chile", "colombia", " peru", "venezuela", "maduro", "ecuador",
+           "bolivia", "cuba", "panama", "uruguay", "paraguay", "caribbean", "guatemala",
+           "el salvador", "honduras", "nicaragua"),
+    "brics": ("brics", "global south", "new development bank", "de-dollar", "rupee", "rbi",
+              "south africa", "opec+", "g20"),
+    # --- topics ---
+    "defence": ("defense", "defence", "military", "army", "navy", "air force", "missile",
+                "drone", "nato", "troops", "weapon", " arms ", "munition", "fighter jet",
+                "warship", "rheinmetall", "lockheed", "nuclear weapon", "ceasefire", "airstrike",
+                " war ", "invasion", "terror"),
+    "cyber": ("cyber", "hack", "ransomware", "malware", "data breach", "disinformation",
+              "influence operation", "espionage", "phishing", "ddos", "zero-day", "spyware"),
+    "tech": (" ai ", "a.i.", "artificial intelligence", "openai", "anthropic", "deepmind",
+             "nvidia", "microsoft", "alphabet", "google", " meta ", "apple", "chip",
+             "semiconductor", "tsmc", "asml", "data center", "data centre", "quantum", "robot",
+             "llm", "deepseek", "alibaba", "tencent", "baidu", "export control", "ai act",
+             "software", "startup", "big tech"),
+    "space": (" space", "satellite", "rocket", "orbit", "nasa", " esa ", "spacex",
+              "starlink", "ariane", "lunar", " moon", " mars", " iss ", "isro", "jaxa",
+              "blue origin", "iris²", "iris2"),
+    "energy": (" oil", " gas ", "lng", "opec", "brent", "ttf", "pipeline", "electricity",
+               "power price", "grid", "nuclear", "renewable", "solar", "wind farm", "battery",
+               "lithium", "rare earth", "cobalt", "copper", "critical mineral", "uranium",
+               "hydrogen", " coal ", " coal-", "emission", "climate"),
+    "econ": ("inflation", "gdp", "growth", "recession", "central bank", "interest rate",
+             "rate cut", "rate hike", "ecb", "fed ", "boj", "pboc", "unemployment", "jobs",
+             "budget", "deficit", "debt", "imf", "world bank", "oecd", "bond", "yield",
+             "spread", "stocks", "shares", "market", "currency", "dollar", " euro ", "yen",
+             "bank", "earnings", "tariff", "trade", "sanction", "export", "wto", "economy"),
 }
+TAGS = tuple(_TAG_TERMS)
 
 
-def regions_of(text: str) -> tuple[str, ...]:
+def tags_of(text: str) -> tuple[str, ...]:
     t = f" {text.lower()} "
-    return tuple(r for r in REGIONS if any(term in t for term in _REGION_TERMS[r]))
+    return tuple(tag for tag in TAGS if any(term in t for term in _TAG_TERMS[tag]))
 
 
 @dataclass(frozen=True)
@@ -70,12 +121,14 @@ class Item:
     link: str
     published: datetime
     summary: str
-    pillars: tuple[str, ...]
+    # Tags declared by the feed (e.g. an Italian outlet is always "it").
+    feed_tags: tuple[str, ...]
     score: float = 0.0
 
     @property
-    def regions(self) -> tuple[str, ...]:
-        return regions_of(f"{self.title} {self.summary}")
+    def tags(self) -> tuple[str, ...]:
+        found = set(tags_of(f"{self.title} {self.summary}")) | set(self.feed_tags)
+        return tuple(t for t in TAGS if t in found)
 
     @property
     def key(self) -> str:
@@ -115,54 +168,37 @@ def fetch_feed(feed: Feed) -> list[Item]:
             continue
         summary = _strip_html(e.get("summary", ""))[:400]
         items.append(
-            Item(feed.name, title, e.get("link", ""), published, summary, feed.pillars,
+            Item(feed.name, title, e.get("link", ""), published, summary, feed.tags,
                  score(title, summary))
         )
     return items
 
 
-def collect(
-    feeds: tuple[Feed, ...],
-    pillars: tuple[str, ...],
-    now: datetime,
-    lookback_hours: int,
-    limit: int,
-    seen_keys: set[str] | frozenset[str] = frozenset(),
-    region_quota: int = 0,
-) -> tuple[list[Item], dict[str, str]]:
-    """Return (ranked items, per-feed status) for feeds matching `pillars`."""
-    selected = [f for f in feeds if set(f.pillars) & set(pillars)]
+def fetch_all(feeds: tuple[Feed, ...]) -> tuple[list[Item], dict[str, str]]:
+    """Fetch every feed in parallel; return (items, per-feed status)."""
     status: dict[str, str] = {}
     items: list[Item] = []
 
     def _safe(feed: Feed):
         try:
             return feed, fetch_feed(feed), None
-        except Exception as exc:  # one dead feed must never sink a dispatch
+        except Exception as exc:  # one dead feed must never sink an edition
             return feed, [], exc
 
     with ThreadPoolExecutor(max_workers=8) as pool:
-        for feed, got, err in pool.map(_safe, selected):
+        for feed, got, err in pool.map(_safe, feeds):
             if err:
                 log.warning("feed %s failed: %s", feed.name, err)
                 status[feed.name] = f"error: {err.__class__.__name__}"
             else:
                 status[feed.name] = f"ok ({len(got)})"
                 items.extend(got)
+    return items, status
 
-    return rank(items, now, lookback_hours, limit, seen_keys, region_quota), status
 
-
-def rank(
-    items: list[Item],
-    now: datetime,
-    lookback_hours: int,
-    limit: int,
-    seen_keys: set[str] | frozenset[str] = frozenset(),
-    region_quota: int = 0,
-) -> list[Item]:
-    """Freshness window + de-dupe, then pick: up to `region_quota` best items per
-    actor first (guaranteed coverage), remaining slots by score."""
+def window(items: list[Item], now: datetime, lookback_hours: int,
+           seen_keys: set[str] | frozenset[str] = frozenset()) -> list[Item]:
+    """Items inside the time window, minus already-used ones, one copy per story."""
     cutoff = now - timedelta(hours=lookback_hours)
     fresh: dict[str, Item] = {}
     for it in items:
@@ -173,14 +209,20 @@ def rank(
         # Same story across outlets: keep the highest-scoring copy.
         if it.key not in fresh or it.score > fresh[it.key].score:
             fresh[it.key] = it
-    ordered = sorted(fresh.values(), key=lambda i: (i.score, i.published), reverse=True)
+    return sorted(fresh.values(), key=lambda i: (i.score, i.published), reverse=True)
+
+
+def select(items: list[Item], tags: tuple[str, ...], limit: int, per_tag: int = 6) -> list[Item]:
+    """Pick items matching any of `tags`: up to `per_tag` best items per tag first
+    (guaranteed coverage for each region/topic), remaining slots by score.
+    `items` must already be ranked (see `window`)."""
+    matching = [i for i in items if set(i.tags) & set(tags)]
     picked: dict[str, Item] = {}
-    if region_quota:
-        for region in REGIONS:
-            for it in [i for i in ordered if region in i.regions][:region_quota]:
-                if len(picked) < limit:
-                    picked[it.key] = it
-    for it in ordered:
+    for tag in tags:
+        for it in [i for i in matching if tag in i.tags][:per_tag]:
+            if len(picked) < limit:
+                picked[it.key] = it
+    for it in matching:
         if len(picked) >= limit:
             break
         picked.setdefault(it.key, it)

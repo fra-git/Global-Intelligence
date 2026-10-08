@@ -1,8 +1,14 @@
 name: Intelligence Dispatch
 
 # Two sessions a day, starting at 05:50 and 20:50 Italian time (Europe/Rome),
-# right when the owner's Claude Pro usage window resets. Briefings are sent as
-# soon as they are ready (~10–20 min later, plus GitHub's cron lag).
+# right when the owner's Claude Pro usage window resets:
+#   AM -> Daily Intelligence Report (Weekly Deep-Dive on Sundays), PM -> Evening Update.
+#
+# Primary trigger: an external scheduler (cron-job.org) calls this workflow's
+# workflow_dispatch API at the exact minute (see README, "Exact timing").
+# Backup trigger: GitHub's own cron below, which can run hours late under load.
+# Whichever arrives second finds the session already delivered and sends nothing.
+#
 # GitHub cron is UTC-only and ignores daylight saving, so each session has two
 # triggers (summer CEST = UTC+2, winter CET = UTC+1); the `gate` job lets only
 # the one matching Italy's current offset proceed.
@@ -14,13 +20,17 @@ on:
     - cron: "50 19 * * *"   # PM, winter: 20:50 CET
   workflow_dispatch:
     inputs:
-      dispatch:
-        description: "AM | PM | AM_PART_1 | AM_PART_2 | PM_PART_1 | PM_PART_2 | auto"
+      edition:
+        description: "AM (daily, weekly on Sundays) | PM (evening) | DAILY | EVENING | WEEKLY | auto"
         default: auto
       send:
         description: "Post to Telegram"
         type: boolean
         default: true
+      force:
+        description: "Send even if this session was already delivered today"
+        type: boolean
+        default: false
 
 concurrency:
   group: intelligence-dispatch
@@ -31,7 +41,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       go: ${{ steps.gate.outputs.go }}
-      dispatch: ${{ steps.gate.outputs.dispatch }}
+      edition: ${{ steps.gate.outputs.edition }}
     steps:
       - name: Resolve session and daylight-saving pair
         id: gate
@@ -41,9 +51,9 @@ jobs:
             "50 4 * * *")  D=AM; OFF=1 ;;
             "50 18 * * *") D=PM; OFF=2 ;;
             "50 19 * * *") D=PM; OFF=1 ;;
-            *)             D="${{ inputs.dispatch || 'auto' }}"; OFF="" ;;
+            *)             D="${{ inputs.edition || 'auto' }}"; OFF="" ;;
           esac
-          echo "dispatch=$D" >> "$GITHUB_OUTPUT"
+          echo "edition=$D" >> "$GITHUB_OUTPUT"
           if [ -z "$OFF" ]; then echo "go=true" >> "$GITHUB_OUTPUT"; exit 0; fi
           CUR=$(TZ=Europe/Rome date +%z)   # +0200 in summer, +0100 in winter
           if [ "$CUR" = "+0${OFF}00" ]; then GO=true; else GO=false; fi
@@ -54,7 +64,7 @@ jobs:
     needs: gate
     if: needs.gate.outputs.go == 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 120
     steps:
       - uses: actions/checkout@v4
 
@@ -62,6 +72,11 @@ jobs:
         with:
           python-version: "3.11"
           cache: pip
+
+      - name: Install PDF rendering libraries
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq libpango-1.0-0 libpangoft2-1.0-0 libharfbuzz-subset0 fonts-liberation
 
       - run: pip install -r requirements.txt
 
@@ -87,13 +102,16 @@ jobs:
           TELEGRAM_CHAT_IDS: ${{ secrets.TELEGRAM_CHAT_IDS }}
           BRIEFING_MODEL: ${{ vars.BRIEFING_MODEL || 'sonnet' }}
           BRIEFING_EFFORT: ${{ vars.BRIEFING_EFFORT || 'high' }}
+          BRIEFING_PARALLEL_DESKS: ${{ vars.BRIEFING_PARALLEL_DESKS || '3' }}
+          BRIEFING_SEARCH_SCALE: ${{ vars.BRIEFING_SEARCH_SCALE || '1' }}
           BRIEFING_TZ: Europe/Rome
         run: |
-          MODE=""
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.send }}" != "true" ]; then
-            MODE="--no-send"
+          FLAGS=""
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            if [ "${{ inputs.send }}" != "true" ]; then FLAGS="$FLAGS --no-send"; fi
+            if [ "${{ inputs.force }}" = "true" ]; then FLAGS="$FLAGS --force"; fi
           fi
-          python -m briefing -v run "${{ needs.gate.outputs.dispatch }}" $MODE
+          python -m briefing -v run "${{ needs.gate.outputs.edition }}" $FLAGS
 
       - name: Save cross-dispatch state
         if: always()

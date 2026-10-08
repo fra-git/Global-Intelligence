@@ -2,3 +2,5 @@ feedparser>=6.0
 requests>=2.31
 PyYAML>=6.0
 yfinance>=0.2.40
+markdown>=3.5
+weasyprint>=62
