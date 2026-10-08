@@ -1,146 +1,301 @@
-# Tier-1 source registry.
+# Source registry.
 #
-# allowed_domains: Tier-1 whitelist for Claude Code's web tools.
+# allowed_domains: whitelist for Claude Code's web tools.
 #   WebFetch is hard-restricted to these (permission rules; anything else is denied).
 #   WebSearch is instructed to rely only on results from these domains.
 #   Subdomains are covered (europa.eu covers ecb.europa.eu, ec.europa.eu, eur-lex...).
 #
-# feeds: RSS/Atom feeds ingested before each dispatch as seed context.
-#   pillars: macro | geo | tech | space | energy  (routes items to Part 1 / Part 2)
+# feeds: RSS/Atom feeds ingested before each edition as seed context.
+#   tags: regions  it | eu | us | cn | ru | me (Middle East) | ip (Indo-Pacific) | af | la | brics
+#         topics   defence | cyber | tech | space | energy | econ
+#   Items are also tagged automatically from their headline; feed tags are added on top
+#   (e.g. everything from an Italian outlet is tagged "it"). Tags route items to desks.
 #   Feed URLs change without notice — run `python -m briefing check-feeds` to verify.
-#   A dead feed is logged and skipped; it never fails a dispatch.
+#   A dead feed is logged and skipped; it never fails an edition.
 
 allowed_domains:
-  # Tier-1 financial
+  # Tier-1 financial and general news
   - ft.com
   - bloomberg.com
   - reuters.com
   - wsj.com
   - nikkei.com
   - handelsblatt.com
-  # Tier-1 geopolitics / defense
+  - economist.com
+  - apnews.com
+  - bbc.com
+  - bbc.co.uk
+  - politico.eu
+  # Italy
+  - ansa.it
+  - ilsole24ore.com
+  - corriere.it
+  - bancaditalia.it
+  - istat.it
+  - governo.it
+  - mef.gov.it
+  # Geopolitics / defence / security
   - defenseone.com
-  - spacenews.com
+  - defensenews.com
+  - breakingdefense.com
   - c4isrnet.com
   - warontherocks.com
-  # Official institutions
-  - europa.eu          # EU Commission, ECB, Council, EUR-Lex
-  - federalreserve.gov
+  - kyivindependent.com
+  - nato.int
+  - un.org
+  # Technology, AI, cyber
+  - technologyreview.com
+  - therecord.media
+  - cisa.gov
+  - openai.com
+  - anthropic.com
+  # Space
+  - spacenews.com
+  - esa.int
+  - nasa.gov
+  - spacechina.com     # CASC
+  # Asia-Pacific
+  - japantimes.co.jp
+  - boj.or.jp
+  # Energy
+  - iea.org
+  - opec.org
+  # Official institutions: EU and international
+  - europa.eu          # EU Commission, ECB, Council, Parliament, EUR-Lex
   - bis.org
   - imf.org
-  - esa.int
-  - spacechina.com     # CASC
+  - worldbank.org
+  - oecd.org
+  - wto.org
   # Official institutions: US
+  - federalreserve.gov
   - treasury.gov       # incl. OFAC sanctions
   - commerce.gov
   - bis.gov            # US Bureau of Industry and Security (export controls)
   - ustr.gov
   - whitehouse.gov
   - defense.gov
+  - state.gov
   # Official institutions: China
   - gov.cn             # State Council (english.www.gov.cn)
   - pbc.gov.cn
   - mofcom.gov.cn
   - stats.gov.cn
+  - fmprc.gov.cn       # Foreign ministry
   # Official institutions: Russia (official rhetoric / CBR decisions only)
   - cbr.ru
   - kremlin.ru
-  # Official institutions: BRICS+
+  # Official institutions: BRICS+ and others
   - ndb.int            # New Development Bank
   - rbi.org.in
   - bcb.gov.br
+  - au.int             # African Union
   # Think tanks
   - bruegel.org
   - csis.org
   - iiss.org
+  - ecfr.eu
+  - chathamhouse.org
+  - ispionline.it
 
 feeds:
+  # --- General world news ---
+  - name: BBC World
+    url: https://feeds.bbci.co.uk/news/world/rss.xml
+    tags: []
+  - name: BBC Europe
+    url: https://feeds.bbci.co.uk/news/world/europe/rss.xml
+    tags: [eu]
+  - name: BBC Middle East
+    url: https://feeds.bbci.co.uk/news/world/middle_east/rss.xml
+    tags: [me]
+  - name: BBC Africa
+    url: https://feeds.bbci.co.uk/news/world/africa/rss.xml
+    tags: [af]
+  - name: BBC Latin America
+    url: https://feeds.bbci.co.uk/news/world/latin_america/rss.xml
+    tags: [la]
+  - name: BBC Asia
+    url: https://feeds.bbci.co.uk/news/world/asia/rss.xml
+    tags: [ip]
+  - name: BBC US & Canada
+    url: https://feeds.bbci.co.uk/news/world/us_and_canada/rss.xml
+    tags: [us]
+  - name: BBC Technology
+    url: https://feeds.bbci.co.uk/news/technology/rss.xml
+    tags: [tech]
+  - name: The Economist Europe
+    url: https://www.economist.com/europe/rss.xml
+    tags: [eu]
+  - name: The Economist Middle East & Africa
+    url: https://www.economist.com/middle-east-and-africa/rss.xml
+    tags: []
+  - name: The Economist The Americas
+    url: https://www.economist.com/the-americas/rss.xml
+    tags: [la]
+  - name: The Economist Asia
+    url: https://www.economist.com/asia/rss.xml
+    tags: [ip]
+  - name: The Economist China
+    url: https://www.economist.com/china/rss.xml
+    tags: [cn]
+  - name: The Economist Finance
+    url: https://www.economist.com/finance-and-economics/rss.xml
+    tags: [econ]
+  - name: The Economist Science & Technology
+    url: https://www.economist.com/science-and-technology/rss.xml
+    tags: [tech]
+  - name: Politico Europe
+    url: https://www.politico.eu/feed/
+    tags: [eu]
+  # --- Italy ---
+  - name: ANSA Top News
+    url: https://www.ansa.it/sito/notizie/topnews/topnews_rss.xml
+    tags: [it]
+  - name: ANSA Economia
+    url: https://www.ansa.it/sito/notizie/economia/economia_rss.xml
+    tags: [it, econ]
+  - name: ANSA Politica
+    url: https://www.ansa.it/sito/notizie/politica/politica_rss.xml
+    tags: [it]
+  - name: Il Sole 24 Ore Italia
+    url: https://www.ilsole24ore.com/rss/italia.xml
+    tags: [it]
+  - name: Il Sole 24 Ore Economia
+    url: https://www.ilsole24ore.com/rss/economia.xml
+    tags: [it, econ]
+  - name: Il Sole 24 Ore Mondo
+    url: https://www.ilsole24ore.com/rss/mondo.xml
+    tags: []
   # --- Tier-1 financial ---
   - name: Bloomberg Markets
     url: https://feeds.bloomberg.com/markets/news.rss
-    pillars: [macro]
+    tags: [econ]
   - name: Bloomberg Politics
     url: https://feeds.bloomberg.com/politics/news.rss
-    pillars: [geo]
+    tags: []
   - name: Bloomberg Technology
     url: https://feeds.bloomberg.com/technology/news.rss
-    pillars: [tech]
-  - name: FT World
-    url: https://www.ft.com/world?format=rss
-    pillars: [geo]
-  - name: FT Markets
-    url: https://www.ft.com/markets?format=rss
-    pillars: [macro]
-  - name: FT Technology
-    url: https://www.ft.com/technology?format=rss
-    pillars: [tech]
-  - name: WSJ World
-    url: https://feeds.a.dj.com/rss/RSSWorldNews.xml
-    pillars: [geo]
-  - name: WSJ Markets
-    url: https://feeds.a.dj.com/rss/RSSMarketsMain.xml
-    pillars: [macro]
-  - name: Nikkei Asia
-    url: https://asia.nikkei.com/rss/feed/nar
-    pillars: [geo, tech]
-  - name: Handelsblatt
-    url: https://www.handelsblatt.com/contentexport/feed/schlagzeilen
-    pillars: [macro, energy]
-  # --- Global axis (US / China / Russia / BRICS+) ---
+    tags: [tech]
   - name: Bloomberg Economics
     url: https://feeds.bloomberg.com/economics/news.rss
-    pillars: [macro, geo]
+    tags: [econ]
+  - name: FT World
+    url: https://www.ft.com/world?format=rss
+    tags: []
+  - name: FT Markets
+    url: https://www.ft.com/markets?format=rss
+    tags: [econ]
+  - name: FT Technology
+    url: https://www.ft.com/technology?format=rss
+    tags: [tech]
   - name: FT US
     url: https://www.ft.com/us?format=rss
-    pillars: [geo, macro]
+    tags: [us]
   - name: FT China
     url: https://www.ft.com/china?format=rss
-    pillars: [geo, tech]
+    tags: [cn]
   - name: FT Russia
     url: https://www.ft.com/russia?format=rss
-    pillars: [geo, energy]
+    tags: [ru]
   - name: FT Emerging Markets
     url: https://www.ft.com/emerging-markets?format=rss
-    pillars: [geo, macro]
+    tags: [brics, econ]
   - name: FT India
     url: https://www.ft.com/india?format=rss
-    pillars: [geo]
+    tags: [ip]
+  - name: FT Middle East
+    url: https://www.ft.com/world/mideast?format=rss
+    tags: [me]
+  - name: FT Africa
+    url: https://www.ft.com/world/africa?format=rss
+    tags: [af]
+  - name: FT Americas
+    url: https://www.ft.com/world/americas?format=rss
+    tags: [la]
+  - name: FT Asia-Pacific
+    url: https://www.ft.com/world/asia-pacific?format=rss
+    tags: [ip]
+  - name: FT Italy
+    url: https://www.ft.com/italy?format=rss
+    tags: [it]
+  - name: FT Energy
+    url: https://www.ft.com/energy?format=rss
+    tags: [energy]
+  - name: WSJ World
+    url: https://feeds.a.dj.com/rss/RSSWorldNews.xml
+    tags: []
+  - name: WSJ Markets
+    url: https://feeds.a.dj.com/rss/RSSMarketsMain.xml
+    tags: [econ]
   - name: WSJ Business
     url: https://feeds.a.dj.com/rss/WSJcomUSBusiness.xml
-    pillars: [macro, tech]
-  # --- Tier-1 geopolitics / defense / space ---
+    tags: [us, econ]
+  - name: Nikkei Asia
+    url: https://asia.nikkei.com/rss/feed/nar
+    tags: [ip]
+  - name: Japan Times
+    url: https://www.japantimes.co.jp/feed/
+    tags: [ip]
+  - name: Handelsblatt
+    url: https://www.handelsblatt.com/contentexport/feed/schlagzeilen
+    tags: [eu, econ]
+  # --- Defence, security, cyber ---
   - name: Defense One
     url: https://www.defenseone.com/rss/all/
-    pillars: [geo, tech]
-  - name: SpaceNews
-    url: https://spacenews.com/feed/
-    pillars: [space]
-  - name: C4ISRNET
-    url: https://www.c4isrnet.com/arc/outboundfeeds/rss/?outputType=xml
-    pillars: [tech, space]
+    tags: [defence]
+  - name: Defense News
+    url: https://www.defensenews.com/arc/outboundfeeds/rss/?outputType=xml
+    tags: [defence]
+  - name: Breaking Defense
+    url: https://breakingdefense.com/feed/
+    tags: [defence]
   - name: War on the Rocks
     url: https://warontherocks.com/feed/
-    pillars: [geo]
+    tags: [defence]
+  - name: Kyiv Independent
+    url: https://kyivindependent.com/rss/
+    tags: [ru]
+  - name: The Record (cyber)
+    url: https://therecord.media/feed
+    tags: [cyber]
+  # --- Technology & AI ---
+  - name: MIT Technology Review
+    url: https://www.technologyreview.com/feed/
+    tags: [tech]
+  # --- Space ---
+  - name: SpaceNews
+    url: https://spacenews.com/feed/
+    tags: [space]
+  - name: C4ISRNET
+    url: https://www.c4isrnet.com/arc/outboundfeeds/rss/?outputType=xml
+    tags: [defence, space]
+  - name: ESA Space Transportation
+    url: https://www.esa.int/rssfeed/Our_Activities/Space_Transportation
+    tags: [space]
+  - name: NASA News
+    url: https://www.nasa.gov/news-release/feed/
+    tags: [space]
   # --- Official institutions ---
   - name: ECB Press
     url: https://www.ecb.europa.eu/rss/press.html
-    pillars: [macro]
+    tags: [eu, econ]
   - name: Federal Reserve
     url: https://www.federalreserve.gov/feeds/press_all.xml
-    pillars: [macro]
+    tags: [us, econ]
   - name: BIS Central Bank Speeches
     url: https://www.bis.org/doclist/cbspeeches.rss
-    pillars: [macro]
+    tags: [econ]
   - name: IMF News
     url: https://www.imf.org/en/News/rss?language=eng
-    pillars: [macro]
-  - name: ESA Space Transportation
-    url: https://www.esa.int/rssfeed/Our_Activities/Space_Transportation
-    pillars: [space]
+    tags: [econ]
   # --- Think tanks ---
   - name: Bruegel
     url: https://www.bruegel.org/rss.xml
-    pillars: [macro, energy]
+    tags: [eu, econ]
   - name: CSIS Analysis
     url: https://www.csis.org/analysis/feed
-    pillars: [geo, tech]
+    tags: []
+  - name: ECFR
+    url: https://ecfr.eu/feed/
+    tags: [eu]

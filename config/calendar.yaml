@@ -1,10 +1,11 @@
-# Known scheduled catalysts, injected into the 24–48h Catalyst Radar.
-# Only events inside the next 48h (from dispatch time) are sent to the model.
-# Times are UTC, ISO-8601. Keep this list current; Claude also searches
-# official calendars (ECB, Fed, Eurostat) to fill gaps.
+# Known scheduled events (central bank meetings, data releases, summits, votes),
+# fed to the economy desk and the editor's "What to Watch" / "Week Ahead" table.
+# Only events in the next 7 days (from the edition time) are sent to the model.
+# Times are UTC, ISO-8601. Optional: Claude also checks official calendars
+# (ECB, Fed, Eurostat, EU Council) through web research to fill gaps.
 #
-# - time: 2026-10-01T09:00Z
-#   event: Euro area flash HICP (Sep)
-#   note: Core consensus vs ECB path; a beat reprices Dec meeting.
+# - time: 2026-10-29T13:15Z
+#   event: ECB monetary policy decision
+#   note: First meeting since the September inflation surprise.
 
 events: []

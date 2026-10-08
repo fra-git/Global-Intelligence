@@ -1,43 +1,49 @@
-"""Output hygiene and template/length validation."""
+"""Output hygiene: strip non-report text and split a desk's output into its sections."""
 
 from __future__ import annotations
 
 import re
 
-from briefing.dispatch import DispatchSpec
-
 _THINKING = re.compile(r"<thinking>.*?</thinking>\s*", re.DOTALL | re.IGNORECASE)
 _FENCE_LINE = re.compile(r"^\s*```[a-z]*\s*$", re.MULTILINE)
+_H2 = re.compile(r"^##\s+(.+?)\s*#*\s*$", re.MULTILINE)
 
 
-def tg_len(text: str) -> int:
-    """Length as Telegram counts it (UTF-16 code units; flags and emoji count double)."""
-    return len(text.encode("utf-16-le")) // 2
+def _norm(heading: str) -> str:
+    return re.sub(r"[^a-z0-9]+", " ", heading.replace("**", "").lower()).strip()
 
 
 def clean(text: str) -> str:
     text = _THINKING.sub("", text).strip()
     text = _FENCE_LINE.sub("", text)
-    # Drop any conversational preamble before the template's H1.
-    idx = text.find("# ")
-    if idx > 0 and "INTELLIGENCE BRIEFING" in text[idx:idx + 80]:
-        text = text[idx:]
+    # Drop any preamble (or stray H1) before the first section heading.
+    m = _H2.search(text)
+    if m:
+        text = text[m.start():]
     return text.strip()
 
 
-def missing_sections(text: str, spec: DispatchSpec) -> list[str]:
-    missing = [s for s in spec.required_sections if s not in text]
-    head = text.lstrip().splitlines()[0] if text.strip() else ""
-    if spec.type.session not in head:
-        missing.insert(0, f"'{spec.type.session}' session label in the H1 header")
-    return missing
+def split_sections(text: str, headings: tuple[str, ...] | list[str]) -> dict[str, str]:
+    """Map each expected heading to its body. Headings are matched loosely (case,
+    punctuation, numbering like '1. Italy'); unexpected H2s are demoted to item
+    headings (###) inside the previous section."""
+    wanted = {_norm(h): h for h in headings}
+    found: list[tuple[str, int, int]] = []
+    for m in _H2.finditer(text):
+        key = re.sub(r"^\d+\s+", "", _norm(m.group(1)))
+        if key in wanted and all(h != wanted[key] for h, _, _ in found):
+            found.append((wanted[key], m.start(), m.end()))
+    out = {}
+    for i, (heading, _, body_start) in enumerate(found):
+        end = found[i + 1][1] if i + 1 < len(found) else len(text)
+        out[heading] = _H2.sub(r"### \1", text[body_start:end]).strip()
+    return out
 
 
-def hard_trim(text: str, limit: int) -> str:
-    """Last resort: cut on a line boundary so no bullet is split mid-sentence."""
-    if tg_len(text) <= limit:
-        return text
-    lines = text.splitlines()
-    while lines and tg_len("\n".join(lines) + "\n…") > limit:
-        lines.pop()
-    return "\n".join(lines).rstrip() + "\n…"
+def missing(text: str, headings: tuple[str, ...] | list[str]) -> list[str]:
+    got = split_sections(text, headings)
+    return [h for h in headings if h not in got]
+
+
+def word_count(text: str) -> int:
+    return len(re.findall(r"\w+", text))
