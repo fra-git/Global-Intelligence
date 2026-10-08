@@ -54,7 +54,7 @@ def write_sections(writer: Writer, system: str, user: str, headings: list[str],
         log.error("desk run failed: %s", exc)
         return {}, {"mode": "digest", "error": str(exc)}
     text = clean(res.text)
-    info = {"mode": "ai", "model": res.model, "web_tool_calls": res.searches,
+    info = {"mode": "ai", "model": res.model, "web_tool_calls": res.searches, "turns": res.turns,
             "usage": dict(res.usage), "session_ids": list(res.request_ids), "repair": None}
     gaps = missing(text, headings)
     if gaps:

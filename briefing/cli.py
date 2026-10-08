@@ -38,7 +38,8 @@ def cmd_run(args) -> int:
     for desk, info in r.meta["desks"].items():
         u = info.get("usage", {})
         print(f"  {desk:<8} {info['mode']:<6} words={info.get('words', 0):<5} "
-              f"web={info.get('web_tool_calls', 0):<3} in={u.get('input_tokens', 0):,} "
+              f"web={info.get('web_tool_calls', 0):<3} turns={info.get('turns', 0):<3} "
+              f"in={u.get('input_tokens', 0):,} "
               f"cache_read={u.get('cache_read_input_tokens', 0):,} "
               f"cache_write={u.get('cache_creation_input_tokens', 0):,} "
               f"out={u.get('output_tokens', 0):,} {info.get('error') or ''}", file=sys.stderr)

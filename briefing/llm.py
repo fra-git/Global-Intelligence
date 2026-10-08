@@ -37,6 +37,7 @@ class LLMResult:
     usage: dict = field(default_factory=dict)
     searches: int = 0
     request_ids: list[str] = field(default_factory=list)
+    turns: int = 0
 
 
 def fetch_rules(allowed_domains: tuple[str, ...]) -> list[str]:
@@ -116,4 +117,5 @@ class Writer:
                                                 "cache_creation_input_tokens")},
             searches=int(stool.get("web_search_requests", 0)) + int(stool.get("web_fetch_requests", 0)),
             request_ids=[data.get("session_id", "")],
+            turns=int(data.get("num_turns") or 0),
         )
