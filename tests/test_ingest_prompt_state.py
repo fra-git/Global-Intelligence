@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta, timezone
 
-from briefing.dispatch import EDITOR, SPECS, Edition, edition_for, session_for
+from briefing.dispatch import (EDITOR, SPECS, TIMEZONE, Edition, edition_for, session_for,
+                               slot_for)
 from briefing.ingest import Item, score, select, tags_of, window
 from briefing.prompt import build_desk_message, build_editor_message
 from briefing.state import State, outline_of, prior_context
@@ -59,6 +60,16 @@ def test_edition_selector_and_dst():
     assert edition_for("auto", NOW) is Edition.DAILY
     winter_evening = datetime(2026, 12, 1, 19, 50, tzinfo=timezone.utc)  # 20:50 CET
     assert session_for(winter_evening) == "PM" and edition_for("auto", winter_evening) is Edition.EVENING
+
+
+def test_session_slots():
+    rome = lambda d, h, m: datetime(2026, 10, d, h, m, tzinfo=TIMEZONE)
+    assert slot_for(rome(8, 5, 50)) == ("AM", "2026-10-08")
+    assert slot_for(rome(8, 12, 36)) == ("AM", "2026-10-08")   # late GitHub cron
+    assert slot_for(rome(8, 20, 50)) == ("PM", "2026-10-08")
+    assert slot_for(rome(9, 1, 20)) == ("PM", "2026-10-08")    # after midnight
+    assert slot_for(rome(9, 5, 49)) == ("PM", "2026-10-08")
+    assert edition_for("auto", rome(9, 0, 30)) is Edition.EVENING
 
 
 def test_every_section_has_a_known_desk_and_unique_heading():

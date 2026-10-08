@@ -36,8 +36,13 @@ def cmd_run(args) -> int:
     print(json.dumps({k: r.meta[k] for k in ("mode", "fallback_sections", "words", "pages",
                                               "feed_items")}, indent=2), file=sys.stderr)
     for desk, info in r.meta["desks"].items():
+        u = info.get("usage", {})
         print(f"  {desk:<8} {info['mode']:<6} words={info.get('words', 0):<5} "
-              f"web={info.get('web_tool_calls', 0):<3} {info.get('error') or ''}", file=sys.stderr)
+              f"web={info.get('web_tool_calls', 0):<3} in={u.get('input_tokens', 0):,} "
+              f"cache_read={u.get('cache_read_input_tokens', 0):,} "
+              f"cache_write={u.get('cache_creation_input_tokens', 0):,} "
+              f"out={u.get('output_tokens', 0):,} {info.get('error') or ''}", file=sys.stderr)
+    print(f"  total tokens: {r.meta['usage_total']}", file=sys.stderr)
     return 1 if r.meta["mode"] == "digest" else 0
 
 
@@ -88,8 +93,9 @@ def cmd_schedule(args) -> int:
         print(f"starts {t:%H:%M} {TIMEZONE.key}  {session}: {names}")
     for spec in SPECS.values():
         words = sum(s.words for s in spec.sections)
+        desks = f"{len(spec.desks)} research desk" + ("s" if len(spec.desks) > 1 else "")
         print(f"  {spec.edition.value:<8} {spec.title:<28} {len(spec.sections):>2} sections, "
-              f"~{words:,} words, {len(spec.desks)} research desk{"s" if len(spec.desks) > 1 else ""}")
+              f"~{words:,} words, {desks}")
     return 0
 
 

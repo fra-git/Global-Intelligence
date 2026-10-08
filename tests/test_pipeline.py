@@ -109,6 +109,16 @@ def test_second_trigger_for_same_session_is_skipped(tmp_path):
     assert not forced.skipped and tg.messages
 
 
+def test_off_schedule_test_run_does_not_block_the_real_edition(tmp_path):
+    s = _settings(tmp_path)
+    midday = NOW + timedelta(hours=8)  # 13:50 Italy: inside the morning slot
+    run_edition(Edition.EVENING, midday, s, OPTS, writer=FakeWriter(), telegram=FakeTelegram())
+    tg = FakeTelegram()
+    real = run_edition(Edition.EVENING, NOW + timedelta(hours=15), s, OPTS, writer=FakeWriter(),
+                       telegram=tg)
+    assert not real.skipped and tg.documents
+
+
 def test_weekly_editor_gets_the_weeks_daily_front_pages(tmp_path):
     s = _settings(tmp_path)
     run_edition(Edition.DAILY, NOW, s, OPTS, writer=FakeWriter(), telegram=FakeTelegram())
