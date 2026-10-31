@@ -10,7 +10,8 @@ from datetime import datetime, timezone
 
 from briefing import ingest
 from briefing.config import Settings, load_sources
-from briefing.dispatch import START_LOCAL, SPECS, TIMEZONE, edition_for, utc_offset_hours
+from briefing.dispatch import (START_LOCAL, SPECS, TIMEZONE, edition_for, is_day_off,
+                               utc_offset_hours)
 from briefing.pipeline import RunOptions, run_edition
 from briefing.telegram import Telegram
 
@@ -27,7 +28,12 @@ def cmd_run(args) -> int:
     opts = RunOptions(send=not args.no_send, web=not args.no_web, markets=not args.no_markets,
                       feeds=not args.no_feeds, print_prompt=args.print_prompt, force=args.force)
     now = _parse_now(args.now) or datetime.now(timezone.utc)
-    r = run_edition(edition_for(args.edition, now), now, settings, opts)
+    edition = edition_for(args.edition, now)
+    # Scheduled sessions respect days off; naming an edition explicitly always runs.
+    if args.edition.upper() in ("AM", "PM", "AUTO") and is_day_off(edition, now):
+        print(f"{edition.value}: no edition on this day; nothing sent.")
+        return 0
+    r = run_edition(edition, now, settings, opts)
     if r.skipped:
         print(f"{r.edition.value}: this session was already delivered today; nothing sent.")
         return 0
@@ -90,7 +96,8 @@ def cmd_test_telegram(args) -> int:
 
 def cmd_schedule(args) -> int:
     for session, t in START_LOCAL.items():
-        names = "WEEKLY (Sundays) / DAILY (other days)" if session == "AM" else "EVENING"
+        names = ("WEEKLY (Sundays) / DAILY (other days)" if session == "AM"
+                 else "EVENING (Monday-Thursday)")
         print(f"starts {t:%H:%M} {TIMEZONE.key}  {session}: {names}")
     for spec in SPECS.values():
         words = sum(s.words for s in spec.sections)

@@ -97,6 +97,13 @@ def test_desk_message_lists_sections_items_and_prior():
     assert "<already_covered" in msg and "earlier outline" in msg
 
 
+def test_market_implications_in_every_long_edition():
+    assert "Market Implications" in [s.heading for s in SPECS[Edition.DAILY].sections]
+    assert "Market Implications of the Week" in [s.heading for s in SPECS[Edition.WEEKLY].sections]
+    from briefing.config import load_system_prompt
+    assert "**Market impact:**" in load_system_prompt()
+
+
 def test_editor_message_includes_desk_reports_and_week_memory():
     spec = SPECS[Edition.WEEKLY]
     msg = build_editor_message(spec, NOW, "## Italy\n\nbody", [], "Mon: glance", searches=0)

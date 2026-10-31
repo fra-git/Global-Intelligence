@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass
-from datetime import datetime, time, timedelta, timezone
+from datetime import date, datetime, time, timedelta, timezone
 from enum import Enum
 from zoneinfo import ZoneInfo
 
@@ -181,6 +181,15 @@ def _daily_parts(scale: float = 1.0, weekly: bool = False) -> tuple[Part, ...]:
 
 
 _DAILY_OUTLOOK = Part("Outlook", (
+    Section("Market Implications", EDITOR,
+            "What today's news means for markets. Start with a markdown table: Asset or "
+            "sector | Likely pressure (up / down / mixed) | Driver | Already priced in? "
+            "Cover 8-12 rows across European and Italian equities (banks, defence, energy, "
+            "autos, luxury, utilities), BTP-Bund spread, rates, EUR/USD, oil, gas, gold, "
+            "tech/AI and emerging markets. Then 2-3 short paragraphs on the main market "
+            "themes and what would change the picture. Separate what markets already did "
+            "from what could happen next. Describe effects; never give buy or sell advice.",
+            450),
     Section("Scenarios", EDITOR,
             "Pick the 3 stories with the biggest consequences. For each: '### Story', then a "
             "base case, an upside and a downside scenario (1-2 sentences each, with rough "
@@ -224,7 +233,8 @@ SPECS: dict[Edition, EditionSpec] = {
                     "Indo-Pacific, Africa and Latin America.", 550, ("us", "cn", "ru", "me", "ip", "af", "la", "brics")),
             Section("Markets Close", "evening",
                     "How European and US markets, bonds, currencies, oil and gas moved today, "
-                    "and why.", 250, ("econ", "energy")),
+                    "why, and what the day's news means for markets tomorrow (sectors, "
+                    "currencies and commodities most exposed).", 250, ("econ", "energy")),
             Section("Technology, Defence & Space", "evening",
                     "The day's news in AI and tech, defence and security, cyber and space.", 350, ("tech", "defence", "cyber", "space")),
             Section("Overnight & Tomorrow", "evening",
@@ -260,6 +270,11 @@ SPECS: dict[Edition, EditionSpec] = {
                         "the week: '### Title', background, the actors and their interests, "
                         "what changed this week, implications for Europe and Italy, and how it "
                         "could evolve.", 1400),
+                Section("Market Implications of the Week", EDITOR,
+                        "What the week's news means for markets: a markdown table Asset or "
+                        "sector | Pressure (up / down / mixed) | Driver | Already priced in?, "
+                        "then the 3-4 market themes to follow next week. Describe effects; "
+                        "never give buy or sell advice.", 600),
                 Section("Scenario Scorecard", EDITOR,
                         "Review the scenarios from this week's daily reports (given below): "
                         "which played out, which did not, and what we learned. Then updated "
@@ -312,6 +327,18 @@ def slot_for(now: datetime) -> tuple[str, str]:
 
 def session_for(now: datetime) -> str:
     return slot_for(now)[0]
+
+
+# Evenings with no update (Monday=0 ... Sunday=6): Friday, Saturday and Sunday.
+EVENING_OFF_DAYS = frozenset({4, 5, 6})
+
+
+def is_day_off(edition: Edition, now: datetime) -> bool:
+    """True when the scheduled edition for this slot should not go out at all."""
+    if edition is not Edition.EVENING:
+        return False
+    session, day = slot_for(now)
+    return session == "PM" and date.fromisoformat(day).weekday() in EVENING_OFF_DAYS
 
 
 def edition_for(selector: str, now: datetime) -> Edition:

@@ -190,7 +190,7 @@ def render_html(spec: EditionSpec, now: datetime, bodies: dict[str, str], quotes
 
     out.append('<p class="footer-note">Compiled automatically from reputable news, official and '
                "research sources with AI-assisted research and writing. Verify critical facts "
-               "with the linked sources before acting on them.</p>")
+               "with the linked sources before acting on them. Not investment advice.</p>")
     return (f'<!doctype html><html lang="en"><head><meta charset="utf-8">'
             f"<title>{html.escape(title)}</title><style>{CSS}</style></head>"
             f"<body>{''.join(out)}</body></html>")

@@ -36,6 +36,8 @@ Two to four sentences on what happened: who, what, where, when, with the key num
 
 **For Europe & Italy:** the concrete effect on Europe or Italy (include only when there is a real link).
 
+**Market impact:** which assets, sectors, currencies, commodities or companies are affected and in which direction, and whether markets have already reacted (give the move if known). Include only when there is a real market link. Describe effects; never give buy or sell advice.
+
 **Watch:** the next decision, date or signal to follow.
 
 *Sources: [Reuters](https://...), [FT](https://...)*
