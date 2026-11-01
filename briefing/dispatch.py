@@ -39,6 +39,8 @@ class Section:
     tags: tuple[str, ...] = ()
     # Left out of the shorter Monday-Friday daily report; kept on weekends.
     weekend_only: bool = False
+    # Keeps its length whatever the reading-time budget (e.g. the front-page summary).
+    fixed: bool = False
 
 
 @dataclass(frozen=True)
@@ -111,7 +113,7 @@ _GLANCE = Section(
     "At a Glance", EDITOR,
     "The 8-10 most important developments across the whole report, most consequential first. "
     "One bullet each: '- **Short headline:** one or two sentences with the key fact and why it "
-    "matters.' Cover a mix of regions and topics, not only Europe.", 350)
+    "matters.' Cover a mix of regions and topics, not only Europe.", 350, fixed=True)
 
 
 def _daily_parts(scale: float = 1.0, weekly: bool = False) -> tuple[Part, ...]:
@@ -324,7 +326,7 @@ SPECS: dict[Edition, EditionSpec] = {
                 Section("The Week in One Page", EDITOR,
                         "The 10-12 most important developments of the week, most consequential "
                         "first. One bullet each: '- **Short headline:** two sentences on what "
-                        "happened and why it matters.'", 500),
+                        "happened and why it matters.'", 500, fixed=True),
                 Section("What It Means for You in Italy", EDITOR,
                         _FOR_YOU.guidance.replace("today's news", "this week's news"), 500),
                 Section("Markets Dashboard", MARKETS, ""),
@@ -407,10 +409,13 @@ def spec_for(edition: Edition, now: datetime) -> EditionSpec:
     parts = tuple(Part(p.title, tuple(s for s in p.sections
                                       if kind != "weekday" or not s.weekend_only))
                   for p in spec.parts)
-    base = sum(s.words for p in parts for s in p.sections)
-    scale = min(1.0, READING_MINUTES[kind] * READING_WPM / WRITING_OVERSHOOT / base)
+    sections = [s for p in parts for s in p.sections]
+    fixed = sum(s.words for s in sections if s.fixed)
+    flexible = sum(s.words for s in sections if not s.fixed)
+    budget = READING_MINUTES[kind] * READING_WPM / WRITING_OVERSHOOT
+    scale = min(1.0, (budget - fixed) / flexible)
     parts = tuple(Part(p.title, tuple(
-        replace(s, words=max(80, round(s.words * scale / 10) * 10) if s.words else 0)
+        s if s.fixed or not s.words else replace(s, words=max(80, round(s.words * scale / 10) * 10))
         for s in p.sections)) for p in parts)
     research = min(1.0, scale + 0.2)
     desks = tuple(replace(d, searches=max(3, round(d.searches * research))) for d in spec.desks)
