@@ -10,8 +10,8 @@ from datetime import datetime, timezone
 
 from briefing import ingest
 from briefing.config import Settings, load_sources
-from briefing.dispatch import (START_LOCAL, SPECS, TIMEZONE, edition_for, is_day_off,
-                               utc_offset_hours)
+from briefing.dispatch import (READING_WPM, SPECS, START_LOCAL, TIMEZONE, WRITING_OVERSHOOT,
+                               Edition, edition_for, is_day_off, spec_for, utc_offset_hours)
 from briefing.pipeline import RunOptions, run_edition
 from briefing.telegram import Telegram
 
@@ -99,11 +99,17 @@ def cmd_schedule(args) -> int:
         names = ("WEEKLY (Sundays) / DAILY (other days)" if session == "AM"
                  else "EVENING (Monday-Thursday)")
         print(f"starts {t:%H:%M} {TIMEZONE.key}  {session}: {names}")
-    for spec in SPECS.values():
+    days = {"Mon-Fri": "2026-11-02T05:00:00Z", "Saturday": "2026-11-07T05:00:00Z",
+            "Sunday": "2026-11-08T05:00:00Z"}
+    for label, when in days.items():
+        now = _parse_now(when)
+        spec = spec_for(edition_for("AM", now), now)
         words = sum(s.words for s in spec.sections)
-        desks = f"{len(spec.desks)} research desk" + ("s" if len(spec.desks) > 1 else "")
-        print(f"  {spec.edition.value:<8} {spec.title:<28} {len(spec.sections):>2} sections, "
-              f"~{words:,} words, {desks}")
+        print(f"  {label:<9} {spec.title:<26} {len(spec.sections):>2} sections, ~{words:,} words "
+              f"asked (~{round(words * WRITING_OVERSHOOT / READING_WPM)} min read)")
+    ev = SPECS[Edition.EVENING]
+    print(f"  {'Mon-Thu':<9} {ev.title:<26} {len(ev.sections):>2} sections, "
+          f"~{sum(s.words for s in ev.sections):,} words asked")
     return 0
 
 

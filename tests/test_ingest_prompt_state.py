@@ -133,6 +133,26 @@ def test_state_roundtrip_prior_context_week_and_delivery(tmp_path):
     assert len(s2.data["week"]) == 8 and "glance 9" in s2.week_memory()
 
 
+def test_reading_time_budgets():
+    from datetime import datetime as dt
+    from briefing.dispatch import READING_WPM, WRITING_OVERSHOOT, spec_for
+
+    def minutes(spec):
+        return sum(s.words for s in spec.sections) * WRITING_OVERSHOOT / READING_WPM
+
+    tuesday, saturday, sunday = (dt(2026, 11, d, 5, 0, tzinfo=timezone.utc) for d in (3, 7, 8))
+    weekday = spec_for(Edition.DAILY, tuesday)
+    assert 30 <= minutes(weekday) <= 38
+    assert 55 <= minutes(spec_for(Edition.DAILY, saturday)) <= 62
+    assert 55 <= minutes(spec_for(Edition.WEEKLY, sunday)) <= 62
+    heads = [s.heading for s in weekday.sections]
+    assert "Country of the Day" not in heads and "How Others See It" not in heads
+    assert "Country of the Day" in [s.heading for s in spec_for(Edition.DAILY, saturday).sections]
+    full = {d.key: d.searches for d in SPECS[Edition.DAILY].desks}
+    assert all(d.searches < full[d.key] for d in weekday.desks)  # shorter report, less research
+    assert spec_for(Edition.EVENING, tuesday) is SPECS[Edition.EVENING]
+
+
 def test_country_of_the_day_rotation(tmp_path):
     s = State(tmp_path)
     for d in range(35):

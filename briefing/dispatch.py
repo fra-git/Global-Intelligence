@@ -9,7 +9,7 @@ the order of `parts`, regardless of the order the desks wrote them in.
 from __future__ import annotations
 
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import date, datetime, time, timedelta, timezone
 from enum import Enum
 from zoneinfo import ZoneInfo
@@ -37,6 +37,8 @@ class Section:
     words: int = 0
     # Feed tags used for this section's headline fallback if its desk fails.
     tags: tuple[str, ...] = ()
+    # Left out of the shorter Monday-Friday daily report; kept on weekends.
+    weekend_only: bool = False
 
 
 @dataclass(frozen=True)
@@ -244,7 +246,7 @@ _DAILY_OUTLOOK = Part("Outlook", (
             "'### Country name', then a markdown table of key facts (population, GDP and "
             "growth, government and leader, next election, currency), then short paragraphs on "
             "the political situation, the economy, its role in the world and its relations "
-            "with Italy and the EU, and why it matters right now.", 500),
+            "with Italy and the EU, and why it matters right now.", 500, weekend_only=True),
     Section("How Others See It", EDITOR,
             "Pick the 2-3 most contested stories in today's report. For each: '### Story', then "
             "a markdown table with columns Viewpoint | How they frame it | Key words they use, "
@@ -253,7 +255,7 @@ _DAILY_OUTLOOK = Part("Outlook", (
             "its view differs. Then one or two sentences on where the accounts agree, which "
             "facts are disputed, and what is verified. Base it on official statements and "
             "each side's leading media; attribute everything; state media shows a "
-            "government's position, never independent fact.", 550),
+            "government's position, never independent fact.", 550, weekend_only=True),
     Section("Scenarios", EDITOR,
             "Pick the 3 stories with the biggest consequences. For each: '### Story', then a "
             "base case, an upside and a downside scenario (1-2 sentences each, with rough "
@@ -378,6 +380,43 @@ SPECS: dict[Edition, EditionSpec] = {
         feed_items_per_desk=60,
     ),
 }
+
+# Reading-time budget for the morning reports. Section lengths above are relative
+# weights; each run scales them so the whole report fits the budget.
+READING_MINUTES = {"weekday": 35, "saturday": 60, "sunday": 60}
+READING_WPM = 230
+WRITING_OVERSHOOT = 1.15  # Claude tends to write ~15% more than the lengths asked for
+
+
+def _day_kind(edition: Edition, now: datetime) -> str | None:
+    if edition is Edition.WEEKLY:
+        return "sunday"
+    if edition is Edition.DAILY:
+        return "saturday" if local_now(now).weekday() >= 5 else "weekday"
+    return None
+
+
+def spec_for(edition: Edition, now: datetime) -> EditionSpec:
+    """The edition as it runs on this day: weekday reports drop weekend-only sections,
+    every section is resized to the day's reading-time budget, and research scales
+    down with length (shorter reports need fewer searches and use less of the plan)."""
+    spec = SPECS[edition]
+    kind = _day_kind(edition, now)
+    if kind is None:
+        return spec
+    parts = tuple(Part(p.title, tuple(s for s in p.sections
+                                      if kind != "weekday" or not s.weekend_only))
+                  for p in spec.parts)
+    base = sum(s.words for p in parts for s in p.sections)
+    scale = min(1.0, READING_MINUTES[kind] * READING_WPM / WRITING_OVERSHOOT / base)
+    parts = tuple(Part(p.title, tuple(
+        replace(s, words=max(80, round(s.words * scale / 10) * 10) if s.words else 0)
+        for s in p.sections)) for p in parts)
+    research = min(1.0, scale + 0.2)
+    desks = tuple(replace(d, searches=max(3, round(d.searches * research))) for d in spec.desks)
+    return replace(spec, parts=parts, desks=desks,
+                   editor_searches=max(2, round(spec.editor_searches * research)))
+
 
 # Session start times on the reader's local clock (default Italy, DST-aware),
 # aligned with the owner's Claude Pro usage reset.

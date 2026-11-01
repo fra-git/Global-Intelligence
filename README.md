@@ -8,8 +8,9 @@ The research and writing are done by **Claude Code running on a Claude Pro subsc
 
 | When (Italy time) | Edition | Length | Telegram |
 |---|---|---|---|
-| **05:50**, Monday–Saturday | **Daily Intelligence Report** | full report, ~20–30 pages | summary of the top stories + PDF |
-| **05:50**, Sunday | **Weekly Deep-Dive** | ~30–40 pages | the week in one page + PDF |
+| **05:50**, Monday–Friday | **Daily Intelligence Report** | ~35-minute read | summary of the top stories + PDF |
+| **05:50**, Saturday | **Daily Intelligence Report** (fuller) | ~60-minute read, plus Country of the Day and How Others See It | summary of the top stories + PDF |
+| **05:50**, Sunday | **Weekly Deep-Dive** | ~60-minute read | the week in one page + PDF |
 | **20:50**, Monday–Thursday | **Evening Update** | what changed since the morning, ~5 pages | what changed today + PDF |
 
 ### What's in the daily report
@@ -66,6 +67,8 @@ The **Sunday Weekly Deep-Dive** covers the same sections for the whole week, and
 | PDF | `briefing/report.py` | Cover with At a Glance, contents with page numbers, part banners, explainer boxes, market tables. Model output can't inject HTML, only http(s) links survive, and the renderer fetches nothing from the internet. |
 | Delivery | `briefing/telegram.py` | Summary message (Telegram HTML, plain-text fallback), then the PDF. |
 | Memory | `briefing/state.py` | Each edition sees what the previous one covered and doesn't repeat it; the evening skips items the morning used; the weekly gets the week's front pages and scenarios; a session is never sent twice. |
+
+Reading times are set in `READING_MINUTES` in `briefing/dispatch.py`; every section is resized to fit, and shorter reports also do proportionally less web research (less Claude usage). `python -m briefing schedule` shows the result.
 
 No evening update goes out on Friday, Saturday or Sunday (`EVENING_OFF_DAYS` in `briefing/dispatch.py`); running the `EVENING` edition by hand still works.
 

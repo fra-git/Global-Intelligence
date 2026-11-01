@@ -10,7 +10,8 @@ from datetime import datetime, timezone
 
 from briefing import digest, ingest, markets
 from briefing.config import Settings, load_calendar, load_sources, load_system_prompt
-from briefing.dispatch import EDITOR, MARKETS, SPECS, Edition, EditionSpec, local_now, slot_for
+from briefing.dispatch import (EDITOR, MARKETS, Edition, EditionSpec, local_now, slot_for,
+                               spec_for)
 from briefing.llm import Writer, WriterError
 from briefing.postprocess import clean, missing, split_sections, word_count
 from briefing.prompt import (REPAIR_INSTRUCTION, build_desk_message, build_editor_message,
@@ -102,7 +103,7 @@ def run_edition(
     writer: Writer | None = None,
     telegram: Telegram | None = None,
 ) -> EditionResult:
-    spec = SPECS[edition]
+    spec = spec_for(edition, now)
     state = State(settings.state_dir)
     loc = local_now(now)
     # Only a run inside its own session slot (e.g. the evening edition between
