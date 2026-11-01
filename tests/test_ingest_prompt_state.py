@@ -98,7 +98,10 @@ def test_desk_message_lists_sections_items_and_prior():
 
 
 def test_market_implications_in_every_long_edition():
-    assert "Market Implications" in [s.heading for s in SPECS[Edition.DAILY].sections]
+    daily = [s.heading for s in SPECS[Edition.DAILY].sections]
+    assert {"Market Implications", "Fact Check", "How Others See It", "Explained",
+            "What It Means for You in Italy"} <= set(daily)
+    assert "How Others See It" in [s.heading for s in SPECS[Edition.WEEKLY].sections]
     assert "Market Implications of the Week" in [s.heading for s in SPECS[Edition.WEEKLY].sections]
     from briefing.config import load_system_prompt
     assert "**Market impact:**" in load_system_prompt()

@@ -20,9 +20,9 @@ The research and writing are done by **Claude Code running on a Claude Pro subsc
 3. **Europe & Italy:** Italy (politics and economy), the European Union, and a country-by-country roundup of the rest of Europe.
 4. **Great Powers:** the United States, China, Russia & Ukraine.
 5. **World Regions:** the Middle East & Gulf, the Indo-Pacific, BRICS+ & the Global South, Africa, Latin America.
-6. **Security, Technology & Space:** defence and security, cyber and information warfare, technology and AI, space.
+6. **Security, Technology & Space:** defence and security, cyber and information warfare, **Fact Check** (false or misleading claims in circulation, with the verdict and what is actually true), technology and AI, space.
 7. **Economy, Markets & Energy:** the global economy and central banks, markets and finance, trade, tariffs and sanctions, energy and critical minerals.
-8. **Outlook:** market implications (an asset/sector pressure table), scenarios for the 3 biggest stories, **Explained** (the 3–4 most technical concepts of the day explained step by step), a 7-day "What to Watch" calendar, and a glossary.
+8. **Outlook:** market implications (an asset/sector pressure table), **How Others See It** (how the West, Russia, China and the Global South frame the most contested stories), scenarios for the 3 biggest stories, **Explained** (the 3–4 most technical concepts of the day explained step by step), a 7-day "What to Watch" calendar, and a glossary.
 
 Every story follows the same pattern: **what happened → why it matters → what it means for Europe & Italy → market impact → what to watch**, with source links. Complex stories get a **Background** box explaining the context.
 

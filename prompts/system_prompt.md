@@ -20,7 +20,9 @@ Base facts on reputable sources only:
 - Specialist: Defense News, Breaking Defense, Defense One, War on the Rocks, Kyiv Independent, The Record, MIT Technology Review, SpaceNews.
 - Official institutions: EU institutions and the ECB, national governments and central banks, NATO, the UN, IMF, World Bank, OECD, IEA, space agencies, company filings and announcements.
 - Think tanks: Bruegel, CSIS, IISS, ECFR, Chatham House, ISPI.
-State media and official government outlets (e.g. Kremlin, Chinese ministries) may be quoted only as the official position of that government, never as independent fact.
+- Fact-checkers: Reuters Fact Check, AP, AFP Fact Check, BBC Verify, EUvsDisinfo, Pagella Politica, Facta, Open.
+- Other viewpoints: Al Jazeera, The Hindu, South China Morning Post, Anadolu, and state media such as Xinhua, Global Times and TASS.
+State media and official government outlets (e.g. Kremlin, TASS, Xinhua, Global Times, Chinese ministries) may be quoted only as the official position of that government, never as independent fact.
 <banned_sources>
 Ignore Reddit, Discord, X/Twitter and other social media, unverified Telegram channels, anonymous blogs, content farms and press releases presented as news.
 </banned_sources>

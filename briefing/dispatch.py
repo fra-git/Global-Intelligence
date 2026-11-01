@@ -84,7 +84,7 @@ _EUROPE = Desk("europe", "Europe & Italy", ("it", "eu"), searches=10)
 _POWERS = Desk("powers", "Great Powers", ("us", "cn", "ru"), searches=10)
 _WORLD = Desk("world", "World Regions", ("me", "ip", "af", "la", "brics"), searches=12)
 _SECTECH = Desk("sectech", "Security, Technology & Space", ("defence", "cyber", "tech", "space"),
-                searches=10)
+                searches=13)
 _ECONOMY = Desk("economy", "Economy, Markets & Energy", ("econ", "energy"), searches=10,
                 wants_markets=True)
 
@@ -173,6 +173,16 @@ def _daily_parts(scale: float = 1.0, weekly: bool = False) -> tuple[Part, ...]:
             s("Cyber & Information Warfare", "sectech",
               "Major hacks and ransomware, state cyber operations, attacks on infrastructure, "
               "disinformation and influence campaigns, espionage, digital sanctions evasion.", 400, ("cyber",)),
+            s("Fact Check", "sectech",
+              "2-4 false, misleading or exaggerated claims about major news that circulated in "
+              "the coverage window (wars, elections, economy, health, migration, AI), preferably "
+              "ones already examined by fact-checkers (Reuters Fact Check, AP, AFP Fact Check, "
+              "BBC Verify, EUvsDisinfo, Pagella Politica, Facta, Open). For each: '### The claim' "
+              "(quoted or paraphrased, with where it spread), then '**Verdict:** False / "
+              "Misleading / Missing context / Unproven', '**What is actually true:**' with the "
+              "evidence, '**Why it matters:**' who pushed it and why it spread, and sources. "
+              "Never repeat a false claim without its correction right after it. If nothing "
+              "notable was debunked, say so in one line.", 450, ("cyber",)),
             s("Technology & AI", "sectech",
               "AI models, labs and companies; chips and semiconductors; export controls; big tech "
               "and regulation (EU AI Act, DMA); quantum, biotech and other frontier tech.", 700, ("tech",)),
@@ -207,6 +217,15 @@ _DAILY_OUTLOOK = Part("Outlook", (
             "themes and what would change the picture. Separate what markets already did "
             "from what could happen next. Describe effects; never give buy or sell advice.",
             450),
+    Section("How Others See It", EDITOR,
+            "Pick the 2-3 most contested stories in today's report. For each: '### Story', then "
+            "a markdown table with columns Viewpoint | How they frame it | Key words they use, "
+            "with rows for the US and Western Europe, Russia, China, and the Global South or "
+            "Arab world (e.g. India, Gulf states, Turkey, Brazil, Al Jazeera), plus Italy when "
+            "its view differs. Then one or two sentences on where the accounts agree, which "
+            "facts are disputed, and what is verified. Base it on official statements and "
+            "each side's leading media; attribute everything; state media shows a "
+            "government's position, never independent fact.", 550),
     Section("Scenarios", EDITOR,
             "Pick the 3 stories with the biggest consequences. For each: '### Story', then a "
             "base case, an upside and a downside scenario (1-2 sentences each, with rough "
@@ -232,7 +251,7 @@ SPECS: dict[Edition, EditionSpec] = {
         parts=(Part("Front Page", (_GLANCE, _FOR_YOU, Section("Markets Dashboard", MARKETS, ""))),
                *_daily_parts(), _DAILY_OUTLOOK),
         desks=_DAILY_DESKS,
-        editor_searches=4,
+        editor_searches=8,
         summary_heading="At a Glance",
     ),
     Edition.EVENING: EditionSpec(
@@ -282,6 +301,13 @@ SPECS: dict[Edition, EditionSpec] = {
             )),
             *_daily_parts(scale=1.4, weekly=True),
             Part("Analysis & Outlook", (
+                Section("How Others See It", EDITOR,
+                        "Pick the 3 most contested stories of the week and compare how the "
+                        "West, Russia, China, the Global South / Arab world (and Italy when "
+                        "different) framed them: '### Story', a markdown table Viewpoint | How "
+                        "they frame it | Key words, then where accounts agree and which facts are "
+                        "disputed. Attribute everything; state media shows a government's "
+                        "position, never independent fact.", 700),
                 Section("Trends of the Week", EDITOR,
                         "4-6 big-picture trends that connect the week's events across regions "
                         "and topics. '### Trend' then 2-3 paragraphs each.", 900),
@@ -312,7 +338,7 @@ SPECS: dict[Edition, EditionSpec] = {
         ),
         desks=tuple(Desk(d.key, d.title, d.tags, d.searches + 2, d.wants_markets)
                     for d in _DAILY_DESKS),
-        editor_searches=6,
+        editor_searches=10,
         summary_heading="The Week in One Page",
         feed_items_per_desk=60,
     ),
