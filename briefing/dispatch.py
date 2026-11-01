@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass
-from datetime import datetime, time, timedelta, timezone
+from datetime import date, datetime, time, timedelta, timezone
 from enum import Enum
 from zoneinfo import ZoneInfo
 
@@ -84,9 +84,26 @@ _EUROPE = Desk("europe", "Europe & Italy", ("it", "eu"), searches=10)
 _POWERS = Desk("powers", "Great Powers", ("us", "cn", "ru"), searches=10)
 _WORLD = Desk("world", "World Regions", ("me", "ip", "af", "la", "brics"), searches=12)
 _SECTECH = Desk("sectech", "Security, Technology & Space", ("defence", "cyber", "tech", "space"),
-                searches=10)
+                searches=13)
 _ECONOMY = Desk("economy", "Economy, Markets & Energy", ("econ", "energy"), searches=10,
                 wants_markets=True)
+
+_FOR_YOU = Section(
+    "What It Means for You in Italy", EDITOR,
+    "The concrete effects of today's news on everyday life for someone living in Italy: "
+    "fuel and energy bills, mortgages and loans (ECB rates), prices and inflation, savings "
+    "and BTP yields, jobs and wages, pensions and taxes, travel, and anything local. 5-8 "
+    "bullets: '- **Area:** what changes or could change, how much, and from when.' Only "
+    "include real effects backed by the report; say clearly when an effect is uncertain or "
+    "still far off.", 400)
+
+_EXPLAINED = Section(
+    "Explained", EDITOR,
+    "Pick the 3-4 most technical concepts behind today's report (a financial mechanism, a "
+    "technology, a legal or institutional process, a military capability...) and explain "
+    "each properly for a non-specialist: '### Concept', then what it is, how it works step "
+    "by step, a simple analogy, why it matters right now with the example from today's "
+    "news, and the key number to remember. Go deeper than the glossary.", 700)
 
 _GLANCE = Section(
     "At a Glance", EDITOR,
@@ -156,6 +173,16 @@ def _daily_parts(scale: float = 1.0, weekly: bool = False) -> tuple[Part, ...]:
             s("Cyber & Information Warfare", "sectech",
               "Major hacks and ransomware, state cyber operations, attacks on infrastructure, "
               "disinformation and influence campaigns, espionage, digital sanctions evasion.", 400, ("cyber",)),
+            s("Fact Check", "sectech",
+              "2-4 false, misleading or exaggerated claims about major news that circulated in "
+              "the coverage window (wars, elections, economy, health, migration, AI), preferably "
+              "ones already examined by fact-checkers (Reuters Fact Check, AP, AFP Fact Check, "
+              "BBC Verify, EUvsDisinfo, Pagella Politica, Facta, Open). For each: '### The claim' "
+              "(quoted or paraphrased, with where it spread), then '**Verdict:** False / "
+              "Misleading / Missing context / Unproven', '**What is actually true:**' with the "
+              "evidence, '**Why it matters:**' who pushed it and why it spread, and sources. "
+              "Never repeat a false claim without its correction right after it. If nothing "
+              "notable was debunked, say so in one line.", 450, ("cyber",)),
             s("Technology & AI", "sectech",
               "AI models, labs and companies; chips and semiconductors; export controls; big tech "
               "and regulation (EU AI Act, DMA); quantum, biotech and other frontier tech.", 700, ("tech",)),
@@ -181,6 +208,24 @@ def _daily_parts(scale: float = 1.0, weekly: bool = False) -> tuple[Part, ...]:
 
 
 _DAILY_OUTLOOK = Part("Outlook", (
+    Section("Market Implications", EDITOR,
+            "What today's news means for markets. Start with a markdown table: Asset or "
+            "sector | Likely pressure (up / down / mixed) | Driver | Already priced in? "
+            "Cover 8-12 rows across European and Italian equities (banks, defence, energy, "
+            "autos, luxury, utilities), BTP-Bund spread, rates, EUR/USD, oil, gas, gold, "
+            "tech/AI and emerging markets. Then 2-3 short paragraphs on the main market "
+            "themes and what would change the picture. Separate what markets already did "
+            "from what could happen next. Describe effects; never give buy or sell advice.",
+            450),
+    Section("How Others See It", EDITOR,
+            "Pick the 2-3 most contested stories in today's report. For each: '### Story', then "
+            "a markdown table with columns Viewpoint | How they frame it | Key words they use, "
+            "with rows for the US and Western Europe, Russia, China, and the Global South or "
+            "Arab world (e.g. India, Gulf states, Turkey, Brazil, Al Jazeera), plus Italy when "
+            "its view differs. Then one or two sentences on where the accounts agree, which "
+            "facts are disputed, and what is verified. Base it on official statements and "
+            "each side's leading media; attribute everything; state media shows a "
+            "government's position, never independent fact.", 550),
     Section("Scenarios", EDITOR,
             "Pick the 3 stories with the biggest consequences. For each: '### Story', then a "
             "base case, an upside and a downside scenario (1-2 sentences each, with rough "
@@ -190,6 +235,7 @@ _DAILY_OUTLOOK = Part("Outlook", (
             "The next 7 days: a markdown table with columns Date | Event | Why it matters. "
             "Central bank meetings, data releases, summits, elections, votes, deadlines, "
             "launches, earnings. Verify dates.", 350),
+    _EXPLAINED,
     Section("Glossary", EDITOR,
             "8-12 terms, acronyms, institutions or people used in today's report that a "
             "non-specialist may not know: '- **Term:** plain-language explanation.'", 300),
@@ -202,10 +248,10 @@ SPECS: dict[Edition, EditionSpec] = {
         Edition.DAILY,
         "Daily Intelligence Report",
         lookback_hours=24,
-        parts=(Part("Front Page", (_GLANCE, Section("Markets Dashboard", MARKETS, ""))),
+        parts=(Part("Front Page", (_GLANCE, _FOR_YOU, Section("Markets Dashboard", MARKETS, ""))),
                *_daily_parts(), _DAILY_OUTLOOK),
         desks=_DAILY_DESKS,
-        editor_searches=4,
+        editor_searches=8,
         summary_heading="At a Glance",
     ),
     Edition.EVENING: EditionSpec(
@@ -224,7 +270,8 @@ SPECS: dict[Edition, EditionSpec] = {
                     "Indo-Pacific, Africa and Latin America.", 550, ("us", "cn", "ru", "me", "ip", "af", "la", "brics")),
             Section("Markets Close", "evening",
                     "How European and US markets, bonds, currencies, oil and gas moved today, "
-                    "and why.", 250, ("econ", "energy")),
+                    "why, and what the day's news means for markets tomorrow (sectors, "
+                    "currencies and commodities most exposed).", 250, ("econ", "energy")),
             Section("Technology, Defence & Space", "evening",
                     "The day's news in AI and tech, defence and security, cyber and space.", 350, ("tech", "defence", "cyber", "space")),
             Section("Overnight & Tomorrow", "evening",
@@ -248,10 +295,19 @@ SPECS: dict[Edition, EditionSpec] = {
                         "The 10-12 most important developments of the week, most consequential "
                         "first. One bullet each: '- **Short headline:** two sentences on what "
                         "happened and why it matters.'", 500),
+                Section("What It Means for You in Italy", EDITOR,
+                        _FOR_YOU.guidance.replace("today's news", "this week's news"), 500),
                 Section("Markets Dashboard", MARKETS, ""),
             )),
             *_daily_parts(scale=1.4, weekly=True),
             Part("Analysis & Outlook", (
+                Section("How Others See It", EDITOR,
+                        "Pick the 3 most contested stories of the week and compare how the "
+                        "West, Russia, China, the Global South / Arab world (and Italy when "
+                        "different) framed them: '### Story', a markdown table Viewpoint | How "
+                        "they frame it | Key words, then where accounts agree and which facts are "
+                        "disputed. Attribute everything; state media shows a government's "
+                        "position, never independent fact.", 700),
                 Section("Trends of the Week", EDITOR,
                         "4-6 big-picture trends that connect the week's events across regions "
                         "and topics. '### Trend' then 2-3 paragraphs each.", 900),
@@ -260,10 +316,18 @@ SPECS: dict[Edition, EditionSpec] = {
                         "the week: '### Title', background, the actors and their interests, "
                         "what changed this week, implications for Europe and Italy, and how it "
                         "could evolve.", 1400),
+                Section("Market Implications of the Week", EDITOR,
+                        "What the week's news means for markets: a markdown table Asset or "
+                        "sector | Pressure (up / down / mixed) | Driver | Already priced in?, "
+                        "then the 3-4 market themes to follow next week. Describe effects; "
+                        "never give buy or sell advice.", 600),
                 Section("Scenario Scorecard", EDITOR,
                         "Review the scenarios from this week's daily reports (given below): "
                         "which played out, which did not, and what we learned. Then updated "
                         "scenarios for the 3 most important stories going into next week.", 600),
+                Section("Explained", EDITOR,
+                        _EXPLAINED.guidance.replace("today's report", "this week's report")
+                        .replace("today's news", "this week's news"), 900),
                 Section("Week Ahead", EDITOR,
                         "The next 7 days: a markdown table with columns Date | Event | Why it "
                         "matters. Verify dates.", 400),
@@ -274,7 +338,7 @@ SPECS: dict[Edition, EditionSpec] = {
         ),
         desks=tuple(Desk(d.key, d.title, d.tags, d.searches + 2, d.wants_markets)
                     for d in _DAILY_DESKS),
-        editor_searches=6,
+        editor_searches=10,
         summary_heading="The Week in One Page",
         feed_items_per_desk=60,
     ),
@@ -312,6 +376,18 @@ def slot_for(now: datetime) -> tuple[str, str]:
 
 def session_for(now: datetime) -> str:
     return slot_for(now)[0]
+
+
+# Evenings with no update (Monday=0 ... Sunday=6): Friday, Saturday and Sunday.
+EVENING_OFF_DAYS = frozenset({4, 5, 6})
+
+
+def is_day_off(edition: Edition, now: datetime) -> bool:
+    """True when the scheduled edition for this slot should not go out at all."""
+    if edition is not Edition.EVENING:
+        return False
+    session, day = slot_for(now)
+    return session == "PM" and date.fromisoformat(day).weekday() in EVENING_OFF_DAYS
 
 
 def edition_for(selector: str, now: datetime) -> Edition:

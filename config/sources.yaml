@@ -92,6 +92,20 @@ allowed_domains:
   - rbi.org.in
   - bcb.gov.br
   - au.int             # African Union
+  # Fact-checkers and disinformation trackers
+  - afp.com            # AFP Fact Check (factcheck.afp.com)
+  - euvsdisinfo.eu
+  - pagellapolitica.it
+  - facta.news
+  - open.online
+  # Non-Western viewpoints (for "How Others See It"; state media = official position only)
+  - aljazeera.com
+  - thehindu.com
+  - scmp.com
+  - globaltimes.cn
+  - news.cn             # Xinhua
+  - tass.com
+  - aa.com.tr           # Anadolu Agency
   # Think tanks
   - bruegel.org
   - csis.org
