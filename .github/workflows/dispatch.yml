@@ -65,6 +65,8 @@ jobs:
     if: needs.gate.outputs.go == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 120
+    permissions:
+      contents: write   # push delivered reports to the `reports` branch (archive website)
     steps:
       - uses: actions/checkout@v4
 
@@ -112,6 +114,23 @@ jobs:
             if [ "${{ inputs.force }}" = "true" ]; then FLAGS="$FLAGS --force"; fi
           fi
           python -m briefing -v run "${{ needs.gate.outputs.edition }}" $FLAGS
+
+      - name: Publish to the archive website (reports branch)
+        if: success() && github.ref == 'refs/heads/main'
+        run: |
+          if git fetch -q --depth 1 origin reports:reports 2>/dev/null; then
+            git worktree add -q site reports
+          else
+            git worktree add -q --orphan -b reports site
+          fi
+          python -m briefing site site
+          cd site
+          git add -A
+          if git diff --cached --quiet; then echo "nothing new to publish"; exit 0; fi
+          git -c user.name="github-actions[bot]" \
+              -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+              commit -q -m "Archive report $(date -u +%Y-%m-%dT%H:%MZ)"
+          git push -q origin reports
 
       - name: Save cross-dispatch state
         if: always()

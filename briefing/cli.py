@@ -107,6 +107,16 @@ def cmd_schedule(args) -> int:
     return 0
 
 
+def cmd_site(args) -> int:
+    from pathlib import Path
+
+    from briefing.site import build
+
+    n = build(Path(args.out), Settings().archive_dir)
+    print(f"archive site in {args.out}: {n} reports")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(prog="briefing", description=__doc__)
     p.add_argument("-v", "--verbose", action="store_true")
@@ -134,6 +144,9 @@ def main(argv: list[str] | None = None) -> int:
         func=cmd_check_feeds)
     sub.add_parser("test-telegram", help="send a formatting test message").set_defaults(
         func=cmd_test_telegram)
+    st = sub.add_parser("site", help="add delivered reports to the archive website folder")
+    st.add_argument("out", help="site folder (the checked-out `reports` branch)")
+    st.set_defaults(func=cmd_site)
     sub.add_parser("schedule", help="show the schedule and editions").set_defaults(
         func=cmd_schedule)
 

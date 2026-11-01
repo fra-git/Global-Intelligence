@@ -10,20 +10,21 @@ The research and writing are done by **Claude Code running on a Claude Pro subsc
 |---|---|---|---|
 | **05:50**, Monday–Saturday | **Daily Intelligence Report** | full report, ~20–30 pages | summary of the top stories + PDF |
 | **05:50**, Sunday | **Weekly Deep-Dive** | ~30–40 pages | the week in one page + PDF |
-| **20:50**, every day | **Evening Update** | what changed since the morning, ~5 pages | what changed today + PDF |
+| **20:50**, Monday–Thursday | **Evening Update** | what changed since the morning, ~5 pages | what changed today + PDF |
 
 ### What's in the daily report
 
 1. **At a Glance:** the 8–10 most important developments, one line each.
+1. **What It Means for You in Italy:** effects on fuel and bills, mortgages, prices, savings, jobs, pensions and travel.
 2. **Markets Dashboard:** indices, rates, currencies and commodities for Europe, the Americas and Asia, with daily and weekly moves.
 3. **Europe & Italy:** Italy (politics and economy), the European Union, and a country-by-country roundup of the rest of Europe.
 4. **Great Powers:** the United States, China, Russia & Ukraine.
 5. **World Regions:** the Middle East & Gulf, the Indo-Pacific, BRICS+ & the Global South, Africa, Latin America.
 6. **Security, Technology & Space:** defence and security, cyber and information warfare, technology and AI, space.
 7. **Economy, Markets & Energy:** the global economy and central banks, markets and finance, trade, tariffs and sanctions, energy and critical minerals.
-8. **Outlook:** scenarios for the 3 biggest stories, a 7-day "What to Watch" calendar, and a glossary.
+8. **Outlook:** market implications (an asset/sector pressure table), scenarios for the 3 biggest stories, **Explained** (the 3–4 most technical concepts of the day explained step by step), a 7-day "What to Watch" calendar, and a glossary.
 
-Every story follows the same pattern: **what happened → why it matters → what it means for Europe & Italy → what to watch**, with source links. Complex stories get a **Background** box explaining the context.
+Every story follows the same pattern: **what happened → why it matters → what it means for Europe & Italy → market impact → what to watch**, with source links. Complex stories get a **Background** box explaining the context.
 
 The **Sunday Weekly Deep-Dive** covers the same sections for the whole week, and adds **Trends of the Week**, a long **Deep Dive** essay on the week's most consequential theme, a **Scenario Scorecard** (which of the week's scenarios played out), and **Week Ahead**.
 
@@ -63,6 +64,20 @@ The **Sunday Weekly Deep-Dive** covers the same sections for the whole week, and
 | PDF | `briefing/report.py` | Cover with At a Glance, contents with page numbers, part banners, explainer boxes, market tables. Model output can't inject HTML, only http(s) links survive, and the renderer fetches nothing from the internet. |
 | Delivery | `briefing/telegram.py` | Summary message (Telegram HTML, plain-text fallback), then the PDF. |
 | Memory | `briefing/state.py` | Each edition sees what the previous one covered and doesn't repeat it; the evening skips items the morning used; the weekly gets the week's front pages and scenarios; a session is never sent twice. |
+
+No evening update goes out on Friday, Saturday or Sunday (`EVENING_OFF_DAYS` in `briefing/dispatch.py`); running the `EVENING` edition by hand still works.
+
+## Report archive website
+
+Every report that is delivered is also published to a searchable archive site: one page listing all reports by month, a search box over every front page and story headline, filters for daily/evening/weekly, and a link to each PDF. The workflow stores the reports on a `reports` branch, which GitHub Pages serves.
+
+**Turn it on once** (after the first report has been published, so the `reports` branch exists):
+
+1. Repo **Settings** → **Pages**.
+2. **Source:** *Deploy from a branch*. **Branch:** `reports`, folder `/ (root)`. **Save**.
+3. After a minute the address appears at the top of the page: `https://fra-git.github.io/Global-Intelligence/`.
+
+The site is public, like the repository: anyone with the link can read the reports.
 
 ## Exact timing (cron-job.org)
 

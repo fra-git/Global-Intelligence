@@ -88,6 +88,23 @@ _SECTECH = Desk("sectech", "Security, Technology & Space", ("defence", "cyber", 
 _ECONOMY = Desk("economy", "Economy, Markets & Energy", ("econ", "energy"), searches=10,
                 wants_markets=True)
 
+_FOR_YOU = Section(
+    "What It Means for You in Italy", EDITOR,
+    "The concrete effects of today's news on everyday life for someone living in Italy: "
+    "fuel and energy bills, mortgages and loans (ECB rates), prices and inflation, savings "
+    "and BTP yields, jobs and wages, pensions and taxes, travel, and anything local. 5-8 "
+    "bullets: '- **Area:** what changes or could change, how much, and from when.' Only "
+    "include real effects backed by the report; say clearly when an effect is uncertain or "
+    "still far off.", 400)
+
+_EXPLAINED = Section(
+    "Explained", EDITOR,
+    "Pick the 3-4 most technical concepts behind today's report (a financial mechanism, a "
+    "technology, a legal or institutional process, a military capability...) and explain "
+    "each properly for a non-specialist: '### Concept', then what it is, how it works step "
+    "by step, a simple analogy, why it matters right now with the example from today's "
+    "news, and the key number to remember. Go deeper than the glossary.", 700)
+
 _GLANCE = Section(
     "At a Glance", EDITOR,
     "The 8-10 most important developments across the whole report, most consequential first. "
@@ -199,6 +216,7 @@ _DAILY_OUTLOOK = Part("Outlook", (
             "The next 7 days: a markdown table with columns Date | Event | Why it matters. "
             "Central bank meetings, data releases, summits, elections, votes, deadlines, "
             "launches, earnings. Verify dates.", 350),
+    _EXPLAINED,
     Section("Glossary", EDITOR,
             "8-12 terms, acronyms, institutions or people used in today's report that a "
             "non-specialist may not know: '- **Term:** plain-language explanation.'", 300),
@@ -211,7 +229,7 @@ SPECS: dict[Edition, EditionSpec] = {
         Edition.DAILY,
         "Daily Intelligence Report",
         lookback_hours=24,
-        parts=(Part("Front Page", (_GLANCE, Section("Markets Dashboard", MARKETS, ""))),
+        parts=(Part("Front Page", (_GLANCE, _FOR_YOU, Section("Markets Dashboard", MARKETS, ""))),
                *_daily_parts(), _DAILY_OUTLOOK),
         desks=_DAILY_DESKS,
         editor_searches=4,
@@ -258,6 +276,8 @@ SPECS: dict[Edition, EditionSpec] = {
                         "The 10-12 most important developments of the week, most consequential "
                         "first. One bullet each: '- **Short headline:** two sentences on what "
                         "happened and why it matters.'", 500),
+                Section("What It Means for You in Italy", EDITOR,
+                        _FOR_YOU.guidance.replace("today's news", "this week's news"), 500),
                 Section("Markets Dashboard", MARKETS, ""),
             )),
             *_daily_parts(scale=1.4, weekly=True),
@@ -279,6 +299,9 @@ SPECS: dict[Edition, EditionSpec] = {
                         "Review the scenarios from this week's daily reports (given below): "
                         "which played out, which did not, and what we learned. Then updated "
                         "scenarios for the 3 most important stories going into next week.", 600),
+                Section("Explained", EDITOR,
+                        _EXPLAINED.guidance.replace("today's report", "this week's report")
+                        .replace("today's news", "this week's news"), 900),
                 Section("Week Ahead", EDITOR,
                         "The next 7 days: a markdown table with columns Date | Event | Why it "
                         "matters. Verify dates.", 400),
