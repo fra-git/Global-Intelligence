@@ -62,13 +62,14 @@ def test_daily_runs_every_desk_then_editor_and_delivers_pdf(tmp_path):
     assert "## Russia & Ukraine" in w.calls[-1]["user"]  # editor sees the desk reports
     assert r.meta["mode"] == "ai" and r.meta["fallback_sections"] == []
     assert r.pdf.startswith(b"%PDF") and r.pages > 5
+    assert r.phone_pdf.startswith(b"%PDF") and r.phone_pages > r.pages
     (chat, msg), = tg.messages
     assert msg.startswith("**DAILY INTELLIGENCE REPORT**") and "At a Glance story" in msg
-    assert f"{r.pages} pages" in msg
+    assert f"{r.phone_pages} pages" in msg
     (_, name, data, caption, mime), = tg.documents
-    assert name == "Global-Intelligence_Daily_2026-10-08.pdf" and data == r.pdf
+    assert name == "Global-Intelligence_Daily_2026-10-08.pdf" and data == r.phone_pdf
     day = tmp_path / "archive" / "2026-10-08"
-    assert (day / "DAILY.pdf").exists() and "## Latin America" in (day / "DAILY.md").read_text()
+    assert (day / "DAILY.pdf").exists() and (day / "DAILY-phone.pdf").exists() and "## Latin America" in (day / "DAILY.md").read_text()
 
 
 def test_failed_desk_becomes_headline_digest_rest_still_written(tmp_path, monkeypatch):

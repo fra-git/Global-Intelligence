@@ -127,6 +127,7 @@ def build_editor_message(
     calendar_events: list[dict],
     week_memory: str | None,
     searches: int,
+    recent_profiles: list[str] | None = None,
 ) -> str:
     sections = spec.sections_for("editor")
     research = (f"Use WebSearch / WebFetch (at most {searches} searches) only to verify dates for "
@@ -153,6 +154,9 @@ def build_editor_message(
         fmt_calendar(calendar_events, now),
         "</scheduled_events>",
     ]
+    if any(sec.heading == "Country of the Day" for sec in sections):
+        parts += ["", "Countries profiled in the last 30 days (pick a different one): "
+                  + (", ".join(recent_profiles) if recent_profiles else "none yet")]
     if week_memory:
         parts += ["", "<this_week_daily_reports note=\"Front pages and scenarios from this "
                   "week's daily reports.\">", week_memory, "</this_week_daily_reports>"]

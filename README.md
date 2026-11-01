@@ -8,8 +8,9 @@ The research and writing are done by **Claude Code running on a Claude Pro subsc
 
 | When (Italy time) | Edition | Length | Telegram |
 |---|---|---|---|
-| **05:50**, Monday–Saturday | **Daily Intelligence Report** | full report, ~20–30 pages | summary of the top stories + PDF |
-| **05:50**, Sunday | **Weekly Deep-Dive** | ~30–40 pages | the week in one page + PDF |
+| **05:50**, Monday–Friday | **Daily Intelligence Report** | ~35-minute read | summary of the top stories + PDF |
+| **05:50**, Saturday | **Daily Intelligence Report** (fuller) | ~60-minute read, plus two Country of the Day profiles and How Others See It | summary of the top stories + PDF |
+| **05:50**, Sunday | **Weekly Deep-Dive** | ~60-minute read | the week in one page + PDF |
 | **20:50**, Monday–Thursday | **Evening Update** | what changed since the morning, ~5 pages | what changed today + PDF |
 
 ### What's in the daily report
@@ -17,12 +18,14 @@ The research and writing are done by **Claude Code running on a Claude Pro subsc
 1. **At a Glance:** the 8–10 most important developments, one line each.
 1. **What It Means for You in Italy:** effects on fuel and bills, mortgages, prices, savings, jobs, pensions and travel.
 2. **Markets Dashboard:** indices, rates, currencies and commodities for Europe, the Americas and Asia, with daily and weekly moves.
-3. **Europe & Italy:** Italy (politics and economy), the European Union, and a country-by-country roundup of the rest of Europe.
+3. **Europe & Italy:** Italy (politics and economy), the European Union, **Italy in the EU & PNRR** (Italy's votes and disputes in Brussels, plus a recovery-plan tracker), and a country-by-country roundup of the rest of Europe.
 4. **Great Powers:** the United States, China, Russia & Ukraine.
 5. **World Regions:** the Middle East & Gulf, the Indo-Pacific, BRICS+ & the Global South, Africa, Latin America.
 6. **Security, Technology & Space:** defence and security, cyber and information warfare, **Fact Check** (false or misleading claims in circulation, with the verdict and what is actually true), technology and AI, space.
 7. **Economy, Markets & Energy:** the global economy and central banks, markets and finance, trade, tariffs and sanctions, energy and critical minerals.
-8. **Outlook:** market implications (an asset/sector pressure table), **How Others See It** (how the West, Russia, China and the Global South frame the most contested stories), scenarios for the 3 biggest stories, **Explained** (the 3–4 most technical concepts of the day explained step by step), a 7-day "What to Watch" calendar, and a glossary.
+8. **Outlook:** market implications (an asset/sector pressure table), **Market Opportunities & Risks** (themes, exposed sectors and instruments, risks and an "investing basics" explainer; educational, not advice), **Country of the Day** (a rotating country profile), **How Others See It** (how the West, Russia, China and the Global South frame the most contested stories), scenarios for the 3 biggest stories, **Explained** (the 3–4 most technical concepts of the day explained step by step), a 7-day "What to Watch" calendar, and a glossary.
+
+Telegram receives a **phone-format PDF** (narrow pages, large text, no zooming); the A4 version is kept for printing and the archive website.
 
 Every story follows the same pattern: **what happened → why it matters → what it means for Europe & Italy → market impact → what to watch**, with source links. Complex stories get a **Background** box explaining the context.
 
@@ -64,6 +67,8 @@ The **Sunday Weekly Deep-Dive** covers the same sections for the whole week, and
 | PDF | `briefing/report.py` | Cover with At a Glance, contents with page numbers, part banners, explainer boxes, market tables. Model output can't inject HTML, only http(s) links survive, and the renderer fetches nothing from the internet. |
 | Delivery | `briefing/telegram.py` | Summary message (Telegram HTML, plain-text fallback), then the PDF. |
 | Memory | `briefing/state.py` | Each edition sees what the previous one covered and doesn't repeat it; the evening skips items the morning used; the weekly gets the week's front pages and scenarios; a session is never sent twice. |
+
+Reading times are set in `READING_MINUTES` in `briefing/dispatch.py`; every section is resized to fit, and shorter reports also do proportionally less web research (less Claude usage). `python -m briefing schedule` shows the result.
 
 No evening update goes out on Friday, Saturday or Sunday (`EVENING_OFF_DAYS` in `briefing/dispatch.py`); running the `EVENING` edition by hand still works.
 

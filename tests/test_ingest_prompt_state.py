@@ -100,7 +100,8 @@ def test_desk_message_lists_sections_items_and_prior():
 def test_market_implications_in_every_long_edition():
     daily = [s.heading for s in SPECS[Edition.DAILY].sections]
     assert {"Market Implications", "Fact Check", "How Others See It", "Explained",
-            "What It Means for You in Italy"} <= set(daily)
+            "What It Means for You in Italy", "Market Opportunities & Risks",
+            "Country of the Day", "Italy in the EU & PNRR"} <= set(daily)
     assert "How Others See It" in [s.heading for s in SPECS[Edition.WEEKLY].sections]
     assert "Market Implications of the Week" in [s.heading for s in SPECS[Edition.WEEKLY].sections]
     from briefing.config import load_system_prompt
@@ -130,6 +131,39 @@ def test_state_roundtrip_prior_context_week_and_delivery(tmp_path):
     assert prior_context(s2, "DAILY", NOW + timedelta(hours=3)) == {}  # older than 26h
     assert prior_context(s2, "WEEKLY", NOW) == {}
     assert len(s2.data["week"]) == 8 and "glance 9" in s2.week_memory()
+
+
+def test_reading_time_budgets():
+    from datetime import datetime as dt
+    from briefing.dispatch import READING_WPM, WRITING_OVERSHOOT, spec_for
+
+    def minutes(spec):
+        return sum(s.words for s in spec.sections) * WRITING_OVERSHOOT / READING_WPM
+
+    tuesday, saturday, sunday = (dt(2026, 11, d, 5, 0, tzinfo=timezone.utc) for d in (3, 7, 8))
+    weekday = spec_for(Edition.DAILY, tuesday)
+    assert 30 <= minutes(weekday) <= 38
+    assert 55 <= minutes(spec_for(Edition.DAILY, saturday)) <= 62
+    assert 55 <= minutes(spec_for(Edition.WEEKLY, sunday)) <= 62
+    heads = [s.heading for s in weekday.sections]
+    assert "Country of the Day" not in heads and "How Others See It" not in heads
+    sat = {s.heading: s for s in spec_for(Edition.DAILY, saturday).sections}
+    assert "TWO different countries" in sat["Country of the Day"].guidance
+    assert "### Country name" in sat["Country of the Day"].guidance
+    full = {d.key: d.searches for d in SPECS[Edition.DAILY].desks}
+    assert all(d.searches < full[d.key] for d in weekday.desks)  # shorter report, less research
+    assert spec_for(Edition.EVENING, tuesday) is SPECS[Edition.EVENING]
+
+
+def test_country_of_the_day_rotation(tmp_path):
+    s = State(tmp_path)
+    for d in range(34):
+        s.add_profiles(f"2026-{10 + d // 28:02d}-{d % 28 + 1:02d}", [f"Country{d}"])
+    s.add_profiles("2026-11-28", ["Japan", "Kenya"])  # Saturday: two countries, both kept
+    assert len(s.recent_profiles()) == 30 and s.recent_profiles()[-2:] == ["Japan", "Kenya"]
+    spec = SPECS[Edition.DAILY]
+    msg = build_editor_message(spec, NOW, "", [], None, 0, ["Japan", "Kenya"])
+    assert "pick a different one): Japan, Kenya" in msg
 
 
 def test_outline_lists_item_headlines():

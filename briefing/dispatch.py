@@ -9,7 +9,7 @@ the order of `parts`, regardless of the order the desks wrote them in.
 from __future__ import annotations
 
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import date, datetime, time, timedelta, timezone
 from enum import Enum
 from zoneinfo import ZoneInfo
@@ -37,6 +37,10 @@ class Section:
     words: int = 0
     # Feed tags used for this section's headline fallback if its desk fails.
     tags: tuple[str, ...] = ()
+    # Left out of the shorter Monday-Friday daily report; kept on weekends.
+    weekend_only: bool = False
+    # Keeps its length whatever the reading-time budget (e.g. the front-page summary).
+    fixed: bool = False
 
 
 @dataclass(frozen=True)
@@ -80,12 +84,12 @@ class EditionSpec:
 _ALL_TAGS = ("it", "eu", "us", "cn", "ru", "me", "ip", "af", "la", "brics",
              "defence", "cyber", "tech", "space", "econ", "energy")
 
-_EUROPE = Desk("europe", "Europe & Italy", ("it", "eu"), searches=10)
+_EUROPE = Desk("europe", "Europe & Italy", ("it", "eu"), searches=12)
 _POWERS = Desk("powers", "Great Powers", ("us", "cn", "ru"), searches=10)
 _WORLD = Desk("world", "World Regions", ("me", "ip", "af", "la", "brics"), searches=12)
 _SECTECH = Desk("sectech", "Security, Technology & Space", ("defence", "cyber", "tech", "space"),
                 searches=13)
-_ECONOMY = Desk("economy", "Economy, Markets & Energy", ("econ", "energy"), searches=10,
+_ECONOMY = Desk("economy", "Economy, Markets & Energy", ("econ", "energy"), searches=12,
                 wants_markets=True)
 
 _FOR_YOU = Section(
@@ -109,7 +113,7 @@ _GLANCE = Section(
     "At a Glance", EDITOR,
     "The 8-10 most important developments across the whole report, most consequential first. "
     "One bullet each: '- **Short headline:** one or two sentences with the key fact and why it "
-    "matters.' Cover a mix of regions and topics, not only Europe.", 350)
+    "matters.' Cover a mix of regions and topics, not only Europe.", 350, fixed=True)
 
 
 def _daily_parts(scale: float = 1.0, weekly: bool = False) -> tuple[Part, ...]:
@@ -129,6 +133,15 @@ def _daily_parts(scale: float = 1.0, weekly: bool = False) -> tuple[Part, ...]:
             s("European Union", "europe",
               "Commission, Council, Parliament and ECB: legislation, enlargement, budget, defence "
               "integration, migration, competitiveness, trade policy, rule-of-law disputes.", 600, ("eu",)),
+            s("Italy in the EU & PNRR", "europe",
+              "Italy's position inside the EU: how Italy voted or what it pushed for in the "
+              "Council and Parliament, EU decisions that hit Italy directly, infringement "
+              "procedures and fiscal rules (deficit procedure, Commission opinions on the "
+              "budget), and Italy's alliances in Brussels. Then '### PNRR tracker': the latest "
+              "on Italy's recovery plan (instalments requested, received or blocked, milestones, "
+              "deadlines, spending delays, revisions), with a short markdown table "
+              "Item | Status | Next step when there is news. If nothing moved, give the current "
+              "status in two lines.", 450, ("it", "eu")),
             s("Across Europe", "europe",
               "Country-by-country roundup, one '### Country' item per country with real news: "
               "Germany, France, Spain, Poland, Netherlands, Belgium, Nordics, Baltics, Central & "
@@ -217,6 +230,25 @@ _DAILY_OUTLOOK = Part("Outlook", (
             "themes and what would change the picture. Separate what markets already did "
             "from what could happen next. Describe effects; never give buy or sell advice.",
             450),
+    Section("Market Opportunities & Risks", "economy",
+            "Help a non-professional understand where the opportunities and the risks are. "
+            "3-5 '### Theme' items (for example defence spending, AI infrastructure, rate cuts "
+            "and bonds, energy transition, emerging markets, Italian banks): what is driving it "
+            "now, which sectors, asset classes and types of instruments are exposed (sector "
+            "ETFs, government bonds and BTPs, commodities, example listed companies), the main "
+            "risks and what would make it go wrong, the time horizon (short or long term), and "
+            "whether it already looks crowded or priced in. Then '### Investing basics': one "
+            "concept relevant today explained simply (diversification, duration, valuation, "
+            "currency risk, inflation and real returns...). Educational only: no personal "
+            "recommendations, no buy or sell calls, no price targets, and always pair an "
+            "opportunity with its risks.", 650),
+    Section("Country of the Day", EDITOR,
+            "A profile of one country, chosen for its relevance to today's news and different "
+            "from those profiled recently (listed below); rotate across all continents. "
+            "'### Country name', then a markdown table of key facts (population, GDP and "
+            "growth, government and leader, next election, currency), then short paragraphs on "
+            "the political situation, the economy, its role in the world and its relations "
+            "with Italy and the EU, and why it matters right now.", 500, weekend_only=True),
     Section("How Others See It", EDITOR,
             "Pick the 2-3 most contested stories in today's report. For each: '### Story', then "
             "a markdown table with columns Viewpoint | How they frame it | Key words they use, "
@@ -225,7 +257,7 @@ _DAILY_OUTLOOK = Part("Outlook", (
             "its view differs. Then one or two sentences on where the accounts agree, which "
             "facts are disputed, and what is verified. Base it on official statements and "
             "each side's leading media; attribute everything; state media shows a "
-            "government's position, never independent fact.", 550),
+            "government's position, never independent fact.", 550, weekend_only=True),
     Section("Scenarios", EDITOR,
             "Pick the 3 stories with the biggest consequences. For each: '### Story', then a "
             "base case, an upside and a downside scenario (1-2 sentences each, with rough "
@@ -294,7 +326,7 @@ SPECS: dict[Edition, EditionSpec] = {
                 Section("The Week in One Page", EDITOR,
                         "The 10-12 most important developments of the week, most consequential "
                         "first. One bullet each: '- **Short headline:** two sentences on what "
-                        "happened and why it matters.'", 500),
+                        "happened and why it matters.'", 500, fixed=True),
                 Section("What It Means for You in Italy", EDITOR,
                         _FOR_YOU.guidance.replace("today's news", "this week's news"), 500),
                 Section("Markets Dashboard", MARKETS, ""),
@@ -321,6 +353,13 @@ SPECS: dict[Edition, EditionSpec] = {
                         "sector | Pressure (up / down / mixed) | Driver | Already priced in?, "
                         "then the 3-4 market themes to follow next week. Describe effects; "
                         "never give buy or sell advice.", 600),
+                Section("Market Opportunities & Risks", "economy",
+                        "The week's market themes for a non-professional: 4-6 '### Theme' "
+                        "items with what drives them, which sectors, asset classes and "
+                        "instruments are exposed, the main risks, time horizon and whether "
+                        "they look priced in; then '### Investing basics' with one concept "
+                        "explained simply. Educational only: no personal recommendations, no "
+                        "buy or sell calls, no price targets.", 800),
                 Section("Scenario Scorecard", EDITOR,
                         "Review the scenarios from this week's daily reports (given below): "
                         "which played out, which did not, and what we learned. Then updated "
@@ -343,6 +382,57 @@ SPECS: dict[Edition, EditionSpec] = {
         feed_items_per_desk=60,
     ),
 }
+
+# Reading-time budget for the morning reports. Section lengths above are relative
+# weights; each run scales them so the whole report fits the budget.
+READING_MINUTES = {"weekday": 35, "saturday": 60, "sunday": 60}
+READING_WPM = 230
+WRITING_OVERSHOOT = 1.15  # Claude tends to write ~15% more than the lengths asked for
+
+
+def _day_kind(edition: Edition, now: datetime) -> str | None:
+    if edition is Edition.WEEKLY:
+        return "sunday"
+    if edition is Edition.DAILY:
+        return "saturday" if local_now(now).weekday() >= 5 else "weekday"
+    return None
+
+
+def _two_countries(s: Section) -> Section:
+    """Saturday's longer report profiles two countries, ideally on different continents."""
+    return replace(s, words=s.words * 2, guidance=(
+        "Profile TWO different countries, ideally on different continents, each relevant to "
+        "this week's news and not profiled recently (listed below). For each one: "
+        + s.guidance.split("rotate across all continents. ", 1)[1]))
+
+
+def spec_for(edition: Edition, now: datetime) -> EditionSpec:
+    """The edition as it runs on this day: weekday reports drop weekend-only sections,
+    every section is resized to the day's reading-time budget, and research scales
+    down with length (shorter reports need fewer searches and use less of the plan)."""
+    spec = SPECS[edition]
+    kind = _day_kind(edition, now)
+    if kind is None:
+        return spec
+    parts = tuple(Part(p.title, tuple(s for s in p.sections
+                                      if kind != "weekday" or not s.weekend_only))
+                  for p in spec.parts)
+    if kind == "saturday":
+        parts = tuple(Part(p.title, tuple(_two_countries(s) if s.heading == "Country of the Day"
+                                          else s for s in p.sections)) for p in parts)
+    sections = [s for p in parts for s in p.sections]
+    fixed = sum(s.words for s in sections if s.fixed)
+    flexible = sum(s.words for s in sections if not s.fixed)
+    budget = READING_MINUTES[kind] * READING_WPM / WRITING_OVERSHOOT
+    scale = min(1.0, (budget - fixed) / flexible)
+    parts = tuple(Part(p.title, tuple(
+        s if s.fixed or not s.words else replace(s, words=max(80, round(s.words * scale / 10) * 10))
+        for s in p.sections)) for p in parts)
+    research = min(1.0, scale + 0.2)
+    desks = tuple(replace(d, searches=max(3, round(d.searches * research))) for d in spec.desks)
+    return replace(spec, parts=parts, desks=desks,
+                   editor_searches=max(2, round(spec.editor_searches * research)))
+
 
 # Session start times on the reader's local clock (default Italy, DST-aware),
 # aligned with the owner's Claude Pro usage reset.
