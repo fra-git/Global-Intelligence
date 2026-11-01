@@ -80,12 +80,12 @@ class EditionSpec:
 _ALL_TAGS = ("it", "eu", "us", "cn", "ru", "me", "ip", "af", "la", "brics",
              "defence", "cyber", "tech", "space", "econ", "energy")
 
-_EUROPE = Desk("europe", "Europe & Italy", ("it", "eu"), searches=10)
+_EUROPE = Desk("europe", "Europe & Italy", ("it", "eu"), searches=12)
 _POWERS = Desk("powers", "Great Powers", ("us", "cn", "ru"), searches=10)
 _WORLD = Desk("world", "World Regions", ("me", "ip", "af", "la", "brics"), searches=12)
 _SECTECH = Desk("sectech", "Security, Technology & Space", ("defence", "cyber", "tech", "space"),
                 searches=13)
-_ECONOMY = Desk("economy", "Economy, Markets & Energy", ("econ", "energy"), searches=10,
+_ECONOMY = Desk("economy", "Economy, Markets & Energy", ("econ", "energy"), searches=12,
                 wants_markets=True)
 
 _FOR_YOU = Section(
@@ -129,6 +129,15 @@ def _daily_parts(scale: float = 1.0, weekly: bool = False) -> tuple[Part, ...]:
             s("European Union", "europe",
               "Commission, Council, Parliament and ECB: legislation, enlargement, budget, defence "
               "integration, migration, competitiveness, trade policy, rule-of-law disputes.", 600, ("eu",)),
+            s("Italy in the EU & PNRR", "europe",
+              "Italy's position inside the EU: how Italy voted or what it pushed for in the "
+              "Council and Parliament, EU decisions that hit Italy directly, infringement "
+              "procedures and fiscal rules (deficit procedure, Commission opinions on the "
+              "budget), and Italy's alliances in Brussels. Then '### PNRR tracker': the latest "
+              "on Italy's recovery plan (instalments requested, received or blocked, milestones, "
+              "deadlines, spending delays, revisions), with a short markdown table "
+              "Item | Status | Next step when there is news. If nothing moved, give the current "
+              "status in two lines.", 450, ("it", "eu")),
             s("Across Europe", "europe",
               "Country-by-country roundup, one '### Country' item per country with real news: "
               "Germany, France, Spain, Poland, Netherlands, Belgium, Nordics, Baltics, Central & "
@@ -217,6 +226,25 @@ _DAILY_OUTLOOK = Part("Outlook", (
             "themes and what would change the picture. Separate what markets already did "
             "from what could happen next. Describe effects; never give buy or sell advice.",
             450),
+    Section("Market Opportunities & Risks", "economy",
+            "Help a non-professional understand where the opportunities and the risks are. "
+            "3-5 '### Theme' items (for example defence spending, AI infrastructure, rate cuts "
+            "and bonds, energy transition, emerging markets, Italian banks): what is driving it "
+            "now, which sectors, asset classes and types of instruments are exposed (sector "
+            "ETFs, government bonds and BTPs, commodities, example listed companies), the main "
+            "risks and what would make it go wrong, the time horizon (short or long term), and "
+            "whether it already looks crowded or priced in. Then '### Investing basics': one "
+            "concept relevant today explained simply (diversification, duration, valuation, "
+            "currency risk, inflation and real returns...). Educational only: no personal "
+            "recommendations, no buy or sell calls, no price targets, and always pair an "
+            "opportunity with its risks.", 650),
+    Section("Country of the Day", EDITOR,
+            "A profile of one country, chosen for its relevance to today's news and different "
+            "from those profiled recently (listed below); rotate across all continents. "
+            "'### Country name', then a markdown table of key facts (population, GDP and "
+            "growth, government and leader, next election, currency), then short paragraphs on "
+            "the political situation, the economy, its role in the world and its relations "
+            "with Italy and the EU, and why it matters right now.", 500),
     Section("How Others See It", EDITOR,
             "Pick the 2-3 most contested stories in today's report. For each: '### Story', then "
             "a markdown table with columns Viewpoint | How they frame it | Key words they use, "
@@ -321,6 +349,13 @@ SPECS: dict[Edition, EditionSpec] = {
                         "sector | Pressure (up / down / mixed) | Driver | Already priced in?, "
                         "then the 3-4 market themes to follow next week. Describe effects; "
                         "never give buy or sell advice.", 600),
+                Section("Market Opportunities & Risks", "economy",
+                        "The week's market themes for a non-professional: 4-6 '### Theme' "
+                        "items with what drives them, which sectors, asset classes and "
+                        "instruments are exposed, the main risks, time horizon and whether "
+                        "they look priced in; then '### Investing basics' with one concept "
+                        "explained simply. Educational only: no personal recommendations, no "
+                        "buy or sell calls, no price targets.", 800),
                 Section("Scenario Scorecard", EDITOR,
                         "Review the scenarios from this week's daily reports (given below): "
                         "which played out, which did not, and what we learned. Then updated "

@@ -100,7 +100,8 @@ def test_desk_message_lists_sections_items_and_prior():
 def test_market_implications_in_every_long_edition():
     daily = [s.heading for s in SPECS[Edition.DAILY].sections]
     assert {"Market Implications", "Fact Check", "How Others See It", "Explained",
-            "What It Means for You in Italy"} <= set(daily)
+            "What It Means for You in Italy", "Market Opportunities & Risks",
+            "Country of the Day", "Italy in the EU & PNRR"} <= set(daily)
     assert "How Others See It" in [s.heading for s in SPECS[Edition.WEEKLY].sections]
     assert "Market Implications of the Week" in [s.heading for s in SPECS[Edition.WEEKLY].sections]
     from briefing.config import load_system_prompt
@@ -130,6 +131,16 @@ def test_state_roundtrip_prior_context_week_and_delivery(tmp_path):
     assert prior_context(s2, "DAILY", NOW + timedelta(hours=3)) == {}  # older than 26h
     assert prior_context(s2, "WEEKLY", NOW) == {}
     assert len(s2.data["week"]) == 8 and "glance 9" in s2.week_memory()
+
+
+def test_country_of_the_day_rotation(tmp_path):
+    s = State(tmp_path)
+    for d in range(35):
+        s.add_profile(f"2026-{10 + d // 28:02d}-{d % 28 + 1:02d}", f"Country{d}")
+    assert len(s.recent_profiles()) == 30 and s.recent_profiles()[-1] == "Country34"
+    spec = SPECS[Edition.DAILY]
+    msg = build_editor_message(spec, NOW, "", [], None, 0, ["Japan", "Kenya"])
+    assert "pick a different one): Japan, Kenya" in msg
 
 
 def test_outline_lists_item_headlines():

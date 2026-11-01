@@ -147,11 +147,41 @@ td.up { color: #15803d; } td.down { color: #b91c1c; }
 .footer-note { margin-top: 8mm; font-size: 7.5pt; color: var(--muted); }
 """
 
+# Phone format: a narrow page whose text fills a phone screen at a readable size
+# (about 16px body text on a 390px-wide screen) without zooming.
+PHONE_CSS = """
+@page {
+  size: 95mm 185mm; margin: 9mm 6mm 10mm 6mm;
+  @top-left { content: none; }
+  @top-right { content: string(part); font-size: 6.5pt; color: #6b7280; }
+  @bottom-center { content: counter(page) " / " counter(pages); font-size: 6.5pt; color: #6b7280; }
+}
+html { font-size: 11pt; line-height: 1.45; }
+.masthead { padding: 6mm 5mm 5mm; margin-bottom: 4mm; }
+.masthead .brand { font-size: 7pt; }
+.masthead h1 { font-size: 17pt; }
+.masthead .date { font-size: 9pt; }
+h1.part { font-size: 14pt; padding: 3mm 4mm; margin-bottom: 4mm; }
+h2 { font-size: 13pt; margin: 6mm 0 2.5mm; }
+h3 { font-size: 11.5pt; margin: 4.5mm 0 1.2mm; }
+ul, ol { padding-left: 4.5mm; }
+blockquote { padding: 2mm 3mm; font-size: 10pt; }
+p.sources { font-size: 8pt; }
+table { font-size: 8.5pt; }
+th, td { padding: 1.2mm 1.2mm; overflow-wrap: anywhere; }
+.glance { padding: 3mm 4mm 2mm; }
+.mkt-grid { display: block; }
+.mkt { width: 100%; }
+.mkt table { font-size: 9pt; }
+.toc li.sec { padding-left: 3mm; }
+.footer-note { font-size: 7pt; }
+"""
+
 _ROMAN = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X"]
 
 
 def render_html(spec: EditionSpec, now: datetime, bodies: dict[str, str], quotes: list[Quote],
-                meta_line: str = "") -> str:
+                meta_line: str = "", phone: bool = False) -> str:
     loc = local_now(now)
     title = f"{spec.title} — {loc:%d %B %Y}"
     first, rest = spec.parts[0], spec.parts[1:]
@@ -192,7 +222,8 @@ def render_html(spec: EditionSpec, now: datetime, bodies: dict[str, str], quotes
                "research sources with AI-assisted research and writing. Verify critical facts "
                "with the linked sources before acting on them. Not investment advice.</p>")
     return (f'<!doctype html><html lang="en"><head><meta charset="utf-8">'
-            f"<title>{html.escape(title)}</title><style>{CSS}</style></head>"
+            f"<title>{html.escape(title)}</title><style>{CSS}{PHONE_CSS if phone else ''}"
+            "</style></head>"
             f"<body>{''.join(out)}</body></html>")
 
 

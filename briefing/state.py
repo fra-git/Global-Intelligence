@@ -29,6 +29,7 @@ class State:
         for key in ("seen", "outlines", "delivered"):
             self.data.setdefault(key, {})
         self.data.setdefault("week", [])
+        self.data.setdefault("profiles", [])
 
     def seen_keys(self, now: datetime) -> set[str]:
         cutoff = now - timedelta(hours=SEEN_TTL_HOURS)
@@ -63,6 +64,14 @@ class State:
             if e.get("scenarios"):
                 out += ["Scenarios:", e["scenarios"]]
         return "\n".join(out)
+
+    def add_profile(self, date: str, country: str) -> None:
+        """Remember a Country of the Day so the next 30 days pick others."""
+        kept = [p for p in self.data["profiles"] if p["date"] != date][-29:]
+        self.data["profiles"] = kept + [{"date": date, "country": country}]
+
+    def recent_profiles(self) -> list[str]:
+        return [p["country"] for p in self.data["profiles"]]
 
     def was_delivered(self, key: str) -> bool:
         return key in self.data["delivered"]
@@ -108,12 +117,14 @@ def prior_context(state: State, edition: str, now: datetime) -> dict[str, str]:
 
 
 def archive(directory: Path, edition: str, now: datetime, markdown: str, meta: dict,
-            pdf: bytes | None = None) -> Path:
+            pdf: bytes | None = None, phone_pdf: bytes | None = None) -> Path:
     day = directory / now.astimezone(timezone.utc).strftime("%Y-%m-%d")
     day.mkdir(parents=True, exist_ok=True)
     md = day / f"{edition}.md"
     md.write_text(markdown)
     if pdf is not None:
         (day / f"{edition}.pdf").write_bytes(pdf)
+    if phone_pdf is not None:
+        (day / f"{edition}-phone.pdf").write_bytes(phone_pdf)
     (day / f"{edition}.meta.json").write_text(json.dumps(meta, indent=2, default=str))
     return md

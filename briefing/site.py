@@ -45,7 +45,7 @@ def collect(archive_dir: Path, site_dir: Path) -> list[Path]:
         dest = site_dir / "reports" / meta_path.parent.name
         dest.mkdir(parents=True, exist_ok=True)
         stem = meta_path.name.replace(".meta.json", "")
-        for suffix in (".pdf", ".md", ".meta.json"):
+        for suffix in (".pdf", "-phone.pdf", ".md", ".meta.json"):
             src = meta_path.with_name(stem + suffix)
             if src.exists():
                 shutil.copy2(src, dest / src.name)
@@ -73,6 +73,8 @@ def entries(site_dir: Path) -> list[dict]:
             "title": spec.title,
             "pages": meta.get("pages", 0),
             "pdf": f"reports/{md_path.parent.name}/{md_path.stem}.pdf",
+            "phone": (f"reports/{md_path.parent.name}/{md_path.stem}-phone.pdf"
+                      if md_path.with_name(md_path.stem + "-phone.pdf").exists() else ""),
             "summary": summary[:12],
             "headlines": headlines,
         })
@@ -110,6 +112,7 @@ h2.month { font-size:13px; text-transform:uppercase; letter-spacing:.08em; color
        flex-wrap:wrap; }
 .top a { font-weight:600; color:var(--navy); text-decoration:none; font-size:16px; }
 .tag { font-size:12px; color:var(--accent); font-weight:600; }
+.top a.ph { font-size:13px; font-weight:500; }
 .meta { color:var(--muted); font-size:13px; }
 details summary { cursor:pointer; color:var(--muted); font-size:13px; margin-top:6px; }
 ul { margin:6px 0 0; padding-left:18px; }
@@ -150,7 +153,7 @@ function render() {
               {weekday: "short", day: "numeric", month: "short"});
     const hits = terms.length ? r.headlines.filter(h => terms.some(t => h.toLowerCase().includes(t))) : [];
     html += `<div class="card"><div class="top"><a href="${r.pdf}">${esc(r.title)} — ${d}</a>
-      <span class="meta"><span class="tag">${r.edition}</span>${r.pages ? " · " + r.pages + " pages" : ""}</span></div>
+      <span class="meta"><span class="tag">${r.edition}</span>${r.pages ? " · " + r.pages + " pages" : ""}${r.phone ? ` · <a class="ph" href="${r.phone}">phone version</a>` : ""}</span></div>
       ${hits.length ? "<ul>" + hits.slice(0, 6).map(h => "<li>" + hl(h, terms) + "</li>").join("") + "</ul>" : ""}
       ${r.summary.length ? `<details><summary>Front page</summary><ul>` +
         r.summary.map(s => "<li>" + hl(s, terms) + "</li>").join("") + "</ul></details>" : ""}</div>`;

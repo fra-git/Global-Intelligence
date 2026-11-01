@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import re
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
@@ -39,10 +40,12 @@ class EditionResult:
     edition: Edition
     markdown: str = ""
     summary: str = ""
-    pdf: bytes | None = None
+    pdf: bytes | None = None          # A4, for printing and the archive website
     pages: int = 0
     meta: dict = field(default_factory=dict)
     skipped: bool = False
+    phone_pdf: bytes | None = None    # narrow pages, the version sent to Telegram
+    phone_pages: int = 0
 
 
 def write_sections(writer: Writer, system: str, user: str, headings: list[str],
@@ -158,7 +161,8 @@ def run_edition(
         searches = round(spec.editor_searches * settings.search_scale)
         user = build_editor_message(
             spec, now, desk_reports or "(no desk reports available this edition)", calendar,
-            state.week_memory() if edition is Edition.WEEKLY else None, searches)
+            state.week_memory() if edition is Edition.WEEKLY else None, searches,
+            state.recent_profiles())
         if opts.print_prompt:
             print(f"===== editor =====\n{user[:3000]}\n...")
         sections, info = write_sections(writer, system, user,
@@ -180,9 +184,11 @@ def run_edition(
                  + (" · some sections are headline-only this edition" if fallbacks else ""))
 
     markdown = assemble_markdown(spec, now, bodies, quotes)
-    pdf, pages = None, 0
+    pdf, pages, phone_pdf, phone_pages = None, 0, None, 0
     try:
         pdf, pages = render_pdf(render_html(spec, now, bodies, quotes, meta_line))
+        phone_pdf, phone_pages = render_pdf(render_html(spec, now, bodies, quotes, meta_line,
+                                                        phone=True))
     except Exception as exc:  # deliver the summary and markdown rather than nothing
         log.error("PDF rendering failed: %s", exc)
 
@@ -200,24 +206,29 @@ def run_edition(
         "fallback_sections": fallbacks,
         "words": word_count(markdown),
         "pages": pages,
+        "phone_pages": phone_pages,
         "feed_items": len(pool),
         "feed_status": feed_status,
         "sent_to": [],
     }
-    result = EditionResult(edition, markdown, summary, pdf, pages, meta)
-    archive(settings.archive_dir, edition.value, now, markdown, meta, pdf)
+    result = EditionResult(edition, markdown, summary, pdf, pages, meta,
+                           phone_pdf=phone_pdf, phone_pages=phone_pages)
+    archive(settings.archive_dir, edition.value, now, markdown, meta, pdf, phone_pdf)
 
     if opts.send:
         deliver(result, spec, now, settings, telegram)
         if delivered_key:
             state.mark_delivered(delivered_key, now)
-        archive(settings.archive_dir, edition.value, now, markdown, meta, pdf)
+        archive(settings.archive_dir, edition.value, now, markdown, meta, pdf, phone_pdf)
 
     if mode != "digest":
         state.mark_seen(used_keys, now)
         desk_bodies = {s.heading: bodies[s.heading] for s in spec.sections
                        if s.desk not in (EDITOR, MARKETS)}
         state.set_outline(edition.value, outline_of(summary, desk_bodies), now)
+        country = re.search(r"^###\s+(.+)$", bodies.get("Country of the Day", ""), re.MULTILINE)
+        if country and "Country of the Day" not in fallbacks:
+            state.add_profile(f"{loc:%Y-%m-%d}", country.group(1).strip())
         if edition is Edition.DAILY:
             state.add_week_entry(f"{loc:%Y-%m-%d}", summary, bodies.get("Scenarios", ""))
     state.save()
@@ -232,12 +243,14 @@ def deliver(result: EditionResult, spec: EditionSpec, now: datetime, settings: S
         raise ValueError("TELEGRAM_CHAT_IDS is not set")
     loc = local_now(now)
     stem = f"Global-Intelligence_{spec.edition.value.title()}_{loc:%Y-%m-%d}"
-    caption = f"{spec.title} — {loc:%d %B %Y}" + (f" ({result.pages} pages)" if result.pages else "")
-    if result.pdf is not None:
-        name, data, mime = f"{stem}.pdf", result.pdf, "application/pdf"
+    if result.phone_pdf is not None:
+        name, data, mime, pages = f"{stem}.pdf", result.phone_pdf, "application/pdf", result.phone_pages
+    elif result.pdf is not None:
+        name, data, mime, pages = f"{stem}.pdf", result.pdf, "application/pdf", result.pages
     else:
-        name, data, mime = f"{stem}.md", result.markdown.encode(), "text/markdown"
-    message = _summary_message(spec, now, result.summary, result.pages)
+        name, data, mime, pages = f"{stem}.md", result.markdown.encode(), "text/markdown", 0
+    caption = f"{spec.title} — {loc:%d %B %Y}" + (f" ({pages} pages)" if pages else "")
+    message = _summary_message(spec, now, result.summary, pages)
     for chat in settings.telegram_chat_ids:
         ids = telegram.send_briefing(chat, message)
         ids.append(telegram.send_document(chat, name, data, caption, mime))
