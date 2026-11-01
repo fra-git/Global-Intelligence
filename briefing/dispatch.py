@@ -398,6 +398,14 @@ def _day_kind(edition: Edition, now: datetime) -> str | None:
     return None
 
 
+def _two_countries(s: Section) -> Section:
+    """Saturday's longer report profiles two countries, ideally on different continents."""
+    return replace(s, words=s.words * 2, guidance=(
+        "Profile TWO different countries, ideally on different continents, each relevant to "
+        "this week's news and not profiled recently (listed below). For each one: "
+        + s.guidance.split("rotate across all continents. ", 1)[1]))
+
+
 def spec_for(edition: Edition, now: datetime) -> EditionSpec:
     """The edition as it runs on this day: weekday reports drop weekend-only sections,
     every section is resized to the day's reading-time budget, and research scales
@@ -409,6 +417,9 @@ def spec_for(edition: Edition, now: datetime) -> EditionSpec:
     parts = tuple(Part(p.title, tuple(s for s in p.sections
                                       if kind != "weekday" or not s.weekend_only))
                   for p in spec.parts)
+    if kind == "saturday":
+        parts = tuple(Part(p.title, tuple(_two_countries(s) if s.heading == "Country of the Day"
+                                          else s for s in p.sections)) for p in parts)
     sections = [s for p in parts for s in p.sections]
     fixed = sum(s.words for s in sections if s.fixed)
     flexible = sum(s.words for s in sections if not s.fixed)

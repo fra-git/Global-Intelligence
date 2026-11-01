@@ -65,10 +65,11 @@ class State:
                 out += ["Scenarios:", e["scenarios"]]
         return "\n".join(out)
 
-    def add_profile(self, date: str, country: str) -> None:
-        """Remember a Country of the Day so the next 30 days pick others."""
-        kept = [p for p in self.data["profiles"] if p["date"] != date][-29:]
-        self.data["profiles"] = kept + [{"date": date, "country": country}]
+    def add_profiles(self, date: str, countries: list[str]) -> None:
+        """Remember the day's Country of the Day profiles; the last 30 are avoided."""
+        kept = [p for p in self.data["profiles"] if p["date"] != date]
+        new = [{"date": date, "country": c} for c in countries]
+        self.data["profiles"] = (kept + new)[-30:]
 
     def recent_profiles(self) -> list[str]:
         return [p["country"] for p in self.data["profiles"]]

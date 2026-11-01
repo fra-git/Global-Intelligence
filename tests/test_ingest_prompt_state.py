@@ -147,7 +147,9 @@ def test_reading_time_budgets():
     assert 55 <= minutes(spec_for(Edition.WEEKLY, sunday)) <= 62
     heads = [s.heading for s in weekday.sections]
     assert "Country of the Day" not in heads and "How Others See It" not in heads
-    assert "Country of the Day" in [s.heading for s in spec_for(Edition.DAILY, saturday).sections]
+    sat = {s.heading: s for s in spec_for(Edition.DAILY, saturday).sections}
+    assert "TWO different countries" in sat["Country of the Day"].guidance
+    assert "### Country name" in sat["Country of the Day"].guidance
     full = {d.key: d.searches for d in SPECS[Edition.DAILY].desks}
     assert all(d.searches < full[d.key] for d in weekday.desks)  # shorter report, less research
     assert spec_for(Edition.EVENING, tuesday) is SPECS[Edition.EVENING]
@@ -155,9 +157,10 @@ def test_reading_time_budgets():
 
 def test_country_of_the_day_rotation(tmp_path):
     s = State(tmp_path)
-    for d in range(35):
-        s.add_profile(f"2026-{10 + d // 28:02d}-{d % 28 + 1:02d}", f"Country{d}")
-    assert len(s.recent_profiles()) == 30 and s.recent_profiles()[-1] == "Country34"
+    for d in range(34):
+        s.add_profiles(f"2026-{10 + d // 28:02d}-{d % 28 + 1:02d}", [f"Country{d}"])
+    s.add_profiles("2026-11-28", ["Japan", "Kenya"])  # Saturday: two countries, both kept
+    assert len(s.recent_profiles()) == 30 and s.recent_profiles()[-2:] == ["Japan", "Kenya"]
     spec = SPECS[Edition.DAILY]
     msg = build_editor_message(spec, NOW, "", [], None, 0, ["Japan", "Kenya"])
     assert "pick a different one): Japan, Kenya" in msg

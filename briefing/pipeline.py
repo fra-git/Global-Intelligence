@@ -227,9 +227,9 @@ def run_edition(
         desk_bodies = {s.heading: bodies[s.heading] for s in spec.sections
                        if s.desk not in (EDITOR, MARKETS)}
         state.set_outline(edition.value, outline_of(summary, desk_bodies), now)
-        country = re.search(r"^###\s+(.+)$", bodies.get("Country of the Day", ""), re.MULTILINE)
-        if country and "Country of the Day" not in fallbacks:
-            state.add_profile(f"{loc:%Y-%m-%d}", country.group(1).strip())
+        countries = re.findall(r"^###\s+(.+)$", bodies.get("Country of the Day", ""), re.MULTILINE)
+        if countries and "Country of the Day" not in fallbacks:
+            state.add_profiles(f"{loc:%Y-%m-%d}", [c.strip() for c in countries])
         if edition is Edition.DAILY:
             state.add_week_entry(f"{loc:%Y-%m-%d}", summary, bodies.get("Scenarios", ""))
     state.save()

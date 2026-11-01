@@ -9,7 +9,7 @@ The research and writing are done by **Claude Code running on a Claude Pro subsc
 | When (Italy time) | Edition | Length | Telegram |
 |---|---|---|---|
 | **05:50**, Monday–Friday | **Daily Intelligence Report** | ~35-minute read | summary of the top stories + PDF |
-| **05:50**, Saturday | **Daily Intelligence Report** (fuller) | ~60-minute read, plus Country of the Day and How Others See It | summary of the top stories + PDF |
+| **05:50**, Saturday | **Daily Intelligence Report** (fuller) | ~60-minute read, plus two Country of the Day profiles and How Others See It | summary of the top stories + PDF |
 | **05:50**, Sunday | **Weekly Deep-Dive** | ~60-minute read | the week in one page + PDF |
 | **20:50**, Monday–Thursday | **Evening Update** | what changed since the morning, ~5 pages | what changed today + PDF |
 
