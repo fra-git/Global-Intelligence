@@ -1,0 +1,202 @@
+{
+  "edition": "DAILY",
+  "generated_at": "2026-11-03T12:25:32.410821+00:00",
+  "mode": "ai",
+  "desks": {
+    "europe": {
+      "mode": "ai",
+      "model": "claude-sonnet-5-5",
+      "web_tool_calls": 0,
+      "turns": 21,
+      "usage": {
+        "input_tokens": 12,
+        "output_tokens": 10673,
+        "cache_read_input_tokens": 145949,
+        "cache_creation_input_tokens": 39424
+      },
+      "session_ids": [
+        "a1e85366-c14b-4ade-83b5-c61ff0a9819b"
+      ],
+      "repair": null,
+      "missing": [],
+      "words": 1635,
+      "feed_items": 45
+    },
+    "powers": {
+      "mode": "ai",
+      "model": "claude-sonnet-5-5",
+      "web_tool_calls": 0,
+      "turns": 11,
+      "usage": {
+        "input_tokens": 8,
+        "output_tokens": 5653,
+        "cache_read_input_tokens": 61654,
+        "cache_creation_input_tokens": 27705
+      },
+      "session_ids": [
+        "448ffc6b-d405-4a0e-a555-cb2fdbc4f96b"
+      ],
+      "repair": null,
+      "missing": [],
+      "words": 1313,
+      "feed_items": 45
+    },
+    "world": {
+      "mode": "ai",
+      "model": "claude-sonnet-5-5",
+      "web_tool_calls": 0,
+      "turns": 12,
+      "usage": {
+        "input_tokens": 8,
+        "output_tokens": 7936,
+        "cache_read_input_tokens": 70583,
+        "cache_creation_input_tokens": 30972
+      },
+      "session_ids": [
+        "37fe8269-1a2d-4426-82a4-4eec4b296981"
+      ],
+      "repair": null,
+      "missing": [],
+      "words": 1859,
+      "feed_items": 45
+    },
+    "sectech": {
+      "mode": "ai",
+      "model": "claude-sonnet-5-5",
+      "web_tool_calls": 0,
+      "turns": 18,
+      "usage": {
+        "input_tokens": 12,
+        "output_tokens": 8720,
+        "cache_read_input_tokens": 126239,
+        "cache_creation_input_tokens": 29913
+      },
+      "session_ids": [
+        "95f4bdc8-b355-4ab6-88c6-0b88109565e3"
+      ],
+      "repair": null,
+      "missing": [],
+      "words": 1764,
+      "feed_items": 45
+    },
+    "economy": {
+      "mode": "ai",
+      "model": "claude-sonnet-5-5",
+      "web_tool_calls": 0,
+      "turns": 13,
+      "usage": {
+        "input_tokens": 8,
+        "output_tokens": 9633,
+        "cache_read_input_tokens": 76912,
+        "cache_creation_input_tokens": 32414
+      },
+      "session_ids": [
+        "40a794d0-b3d2-424f-ba0e-1d2086d0c68b"
+      ],
+      "repair": null,
+      "missing": [],
+      "words": 2030,
+      "feed_items": 45
+    },
+    "editor": {
+      "mode": "ai",
+      "model": "claude-sonnet-5-5",
+      "web_tool_calls": 0,
+      "turns": 3,
+      "usage": {
+        "input_tokens": 4,
+        "output_tokens": 5702,
+        "cache_read_input_tokens": 30666,
+        "cache_creation_input_tokens": 27932
+      },
+      "session_ids": [
+        "0ef14911-b006-4451-acbc-7b76edf7a29c"
+      ],
+      "repair": null,
+      "missing": [],
+      "words": 1768
+    }
+  },
+  "usage_total": {
+    "input_tokens": 52,
+    "output_tokens": 48317,
+    "cache_read_input_tokens": 512003,
+    "cache_creation_input_tokens": 188360
+  },
+  "fallback_sections": [],
+  "words": 10714,
+  "pages": 25,
+  "phone_pages": 60,
+  "feed_items": 436,
+  "feed_status": {
+    "BBC World": "ok (25)",
+    "BBC Europe": "ok (22)",
+    "BBC Middle East": "ok (23)",
+    "BBC Africa": "ok (33)",
+    "BBC Latin America": "ok (19)",
+    "BBC Asia": "ok (17)",
+    "BBC US & Canada": "ok (21)",
+    "BBC Technology": "ok (21)",
+    "The Economist Europe": "ok (300)",
+    "The Economist Middle East & Africa": "ok (300)",
+    "The Economist The Americas": "ok (300)",
+    "The Economist Asia": "ok (300)",
+    "The Economist China": "ok (300)",
+    "The Economist Finance": "ok (300)",
+    "The Economist Science & Technology": "ok (300)",
+    "Politico Europe": "ok (10)",
+    "ANSA Top News": "ok (10)",
+    "ANSA Economia": "ok (62)",
+    "ANSA Politica": "ok (15)",
+    "Il Sole 24 Ore Italia": "ok (12)",
+    "Il Sole 24 Ore Economia": "ok (12)",
+    "Il Sole 24 Ore Mondo": "ok (10)",
+    "Bloomberg Markets": "ok (20)",
+    "Bloomberg Politics": "ok (20)",
+    "Bloomberg Technology": "ok (20)",
+    "Bloomberg Economics": "ok (20)",
+    "FT World": "ok (25)",
+    "FT Markets": "ok (25)",
+    "FT Technology": "ok (25)",
+    "FT US": "ok (25)",
+    "FT China": "ok (25)",
+    "FT Russia": "ok (25)",
+    "FT Emerging Markets": "ok (25)",
+    "FT India": "ok (25)",
+    "FT Middle East": "ok (25)",
+    "FT Africa": "ok (25)",
+    "FT Americas": "ok (25)",
+    "FT Asia-Pacific": "ok (25)",
+    "FT Italy": "ok (25)",
+    "FT Energy": "ok (25)",
+    "WSJ World": "ok (20)",
+    "WSJ Markets": "ok (20)",
+    "WSJ Business": "ok (20)",
+    "Nikkei Asia": "ok (0)",
+    "Japan Times": "ok (30)",
+    "Handelsblatt": "ok (50)",
+    "Defense One": "ok (20)",
+    "Defense News": "ok (10)",
+    "Breaking Defense": "ok (15)",
+    "War on the Rocks": "ok (100)",
+    "The Record (cyber)": "error: ReadTimeout",
+    "MIT Technology Review": "ok (10)",
+    "SpaceNews": "ok (14)",
+    "C4ISRNET": "ok (10)",
+    "ESA Space Transportation": "ok (15)",
+    "NASA News": "ok (10)",
+    "ECB Press": "ok (15)",
+    "Federal Reserve": "ok (20)",
+    "BIS Central Bank Speeches": "ok (50)"
+  },
+  "sent_to": [
+    {
+      "chat": "9161904349",
+      "message_ids": [
+        11,
+        12
+      ],
+      "at": "2026-11-03T12:30:01.337716+00:00"
+    }
+  ]
+}
