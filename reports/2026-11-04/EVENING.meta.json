@@ -1,0 +1,108 @@
+{
+  "edition": "EVENING",
+  "generated_at": "2026-11-04T00:13:30.351932+00:00",
+  "mode": "ai",
+  "desks": {
+    "evening": {
+      "mode": "ai",
+      "model": "claude-sonnet-5-5",
+      "web_tool_calls": 0,
+      "turns": 14,
+      "usage": {
+        "input_tokens": 8,
+        "output_tokens": 11168,
+        "cache_read_input_tokens": 78061,
+        "cache_creation_input_tokens": 35689
+      },
+      "session_ids": [
+        "e7f3a321-bf7d-4362-a340-d49d00acdbb9"
+      ],
+      "repair": null,
+      "missing": [],
+      "words": 2943,
+      "feed_items": 60
+    }
+  },
+  "usage_total": {
+    "input_tokens": 8,
+    "output_tokens": 11168,
+    "cache_read_input_tokens": 78061,
+    "cache_creation_input_tokens": 35689
+  },
+  "fallback_sections": [],
+  "words": 3278,
+  "pages": 7,
+  "phone_pages": 18,
+  "feed_items": 337,
+  "feed_status": {
+    "BBC World": "ok (32)",
+    "BBC Europe": "ok (23)",
+    "BBC Middle East": "ok (23)",
+    "BBC Africa": "ok (33)",
+    "BBC Latin America": "ok (18)",
+    "BBC Asia": "ok (17)",
+    "BBC US & Canada": "ok (21)",
+    "BBC Technology": "ok (21)",
+    "The Economist Europe": "ok (300)",
+    "The Economist Middle East & Africa": "ok (300)",
+    "The Economist The Americas": "ok (300)",
+    "The Economist Asia": "ok (300)",
+    "The Economist China": "ok (300)",
+    "The Economist Finance": "ok (300)",
+    "The Economist Science & Technology": "ok (300)",
+    "Politico Europe": "ok (10)",
+    "ANSA Top News": "ok (10)",
+    "ANSA Economia": "ok (72)",
+    "ANSA Politica": "ok (14)",
+    "Il Sole 24 Ore Italia": "ok (12)",
+    "Il Sole 24 Ore Economia": "ok (12)",
+    "Il Sole 24 Ore Mondo": "ok (9)",
+    "Bloomberg Markets": "ok (20)",
+    "Bloomberg Politics": "ok (20)",
+    "Bloomberg Technology": "ok (20)",
+    "Bloomberg Economics": "ok (20)",
+    "FT World": "ok (25)",
+    "FT Markets": "ok (25)",
+    "FT Technology": "ok (25)",
+    "FT US": "ok (25)",
+    "FT China": "ok (25)",
+    "FT Russia": "ok (25)",
+    "FT Emerging Markets": "ok (25)",
+    "FT India": "ok (25)",
+    "FT Middle East": "ok (25)",
+    "FT Africa": "ok (25)",
+    "FT Americas": "ok (25)",
+    "FT Asia-Pacific": "ok (25)",
+    "FT Italy": "ok (25)",
+    "FT Energy": "ok (25)",
+    "WSJ World": "ok (20)",
+    "WSJ Markets": "ok (20)",
+    "WSJ Business": "ok (20)",
+    "Nikkei Asia": "ok (0)",
+    "Japan Times": "ok (30)",
+    "Handelsblatt": "ok (50)",
+    "Defense One": "ok (20)",
+    "Defense News": "ok (10)",
+    "Breaking Defense": "ok (15)",
+    "War on the Rocks": "ok (100)",
+    "The Record (cyber)": "ok (5)",
+    "MIT Technology Review": "ok (10)",
+    "SpaceNews": "ok (16)",
+    "C4ISRNET": "ok (10)",
+    "ESA Space Transportation": "ok (15)",
+    "NASA News": "ok (10)",
+    "ECB Press": "ok (15)",
+    "Federal Reserve": "ok (20)",
+    "BIS Central Bank Speeches": "ok (50)"
+  },
+  "sent_to": [
+    {
+      "chat": "9161904349",
+      "message_ids": [
+        13,
+        14
+      ],
+      "at": "2026-11-04T00:15:15.560206+00:00"
+    }
+  ]
+}
