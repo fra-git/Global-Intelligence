@@ -28,8 +28,8 @@ class Settings:
     parallel_desks: int = field(default_factory=lambda: int(_env("BRIEFING_PARALLEL_DESKS", "3")))
     # Multiplies every desk's web-search budget (e.g. 0.5 to save plan usage).
     search_scale: float = field(default_factory=lambda: float(_env("BRIEFING_SEARCH_SCALE", "1")))
-    # Morning podcast (Italian audio) on daily and weekly editions; "0" turns it off.
-    podcast: bool = field(default_factory=lambda: _env("BRIEFING_PODCAST", "1") != "0")
+    # Morning podcast (Italian audio) on daily and weekly editions; off unless set to "1".
+    podcast: bool = field(default_factory=lambda: _env("BRIEFING_PODCAST", "0") == "1")
     telegram_bot_token: str = field(default_factory=lambda: _env("TELEGRAM_BOT_TOKEN"))
     telegram_chat_ids: list[str] = field(
         default_factory=lambda: [c.strip() for c in _env("TELEGRAM_CHAT_IDS").split(",") if c.strip()]

@@ -112,6 +112,7 @@ jobs:
           BRIEFING_EFFORT: ${{ vars.BRIEFING_EFFORT || 'high' }}
           BRIEFING_PARALLEL_DESKS: ${{ vars.BRIEFING_PARALLEL_DESKS || '3' }}
           BRIEFING_SEARCH_SCALE: ${{ vars.BRIEFING_SEARCH_SCALE || '1' }}
+          BRIEFING_PODCAST: ${{ vars.BRIEFING_PODCAST || '0' }}
           BRIEFING_TZ: Europe/Rome
         run: |
           if [ "${{ needs.gate.outputs.edition }}" = "PODCAST_TEST" ]; then

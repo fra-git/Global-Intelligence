@@ -148,15 +148,15 @@ td.up { color: #15803d; } td.down { color: #b91c1c; }
 """
 
 # Phone format: a narrow page whose text fills a phone screen at a readable size
-# (about 12-13px body text on a 390px-wide screen: between A4 and full-screen text).
+# (about 11px body text on a 390px-wide screen: between A4 and full-screen text).
 PHONE_CSS = """
 @page {
-  size: 115mm 200mm; margin: 9mm 7mm 10mm 7mm;
+  size: 130mm 220mm; margin: 10mm 8mm 11mm 8mm;
   @top-left { content: none; }
   @top-right { content: string(part); font-size: 6.5pt; color: #6b7280; }
   @bottom-center { content: counter(page) " / " counter(pages); font-size: 6.5pt; color: #6b7280; }
 }
-html { font-size: 10.5pt; line-height: 1.45; }
+html { font-size: 10pt; line-height: 1.45; }
 .masthead { padding: 6mm 5mm 5mm; margin-bottom: 4mm; }
 .masthead .brand { font-size: 7pt; }
 .masthead h1 { font-size: 17pt; }

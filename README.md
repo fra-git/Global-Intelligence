@@ -27,6 +27,8 @@ The research and writing are done by **Claude Code running on a Claude Pro subsc
 
 Telegram receives a **phone-format PDF** (narrow pages, large text, no zooming); the A4 version is kept for printing and the archive website.
 
+**Podcast (off by default):** setting the repository variable `BRIEFING_PODCAST` to `1` adds an Italian audio version of the morning report (about 17 minutes on weekdays, 25 at weekends), written by Claude from the finished report and read aloud by a free local voice (Piper). It adds roughly 15–20% to the morning run's Claude usage. Run the workflow with edition `PODCAST_TEST` to hear the voices without using Claude.
+
 Every story follows the same pattern: **what happened → why it matters → what it means for Europe & Italy → market impact → what to watch**, with source links. Complex stories get a **Background** box explaining the context.
 
 The **Sunday Weekly Deep-Dive** covers the same sections for the whole week, and adds **Trends of the Week**, a long **Deep Dive** essay on the week's most consequential theme, a **Scenario Scorecard** (which of the week's scenarios played out), and **Week Ahead**.
