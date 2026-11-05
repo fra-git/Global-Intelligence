@@ -118,7 +118,8 @@ def prior_context(state: State, edition: str, now: datetime) -> dict[str, str]:
 
 
 def archive(directory: Path, edition: str, now: datetime, markdown: str, meta: dict,
-            pdf: bytes | None = None, phone_pdf: bytes | None = None) -> Path:
+            pdf: bytes | None = None, phone_pdf: bytes | None = None,
+            podcast_mp3: bytes | None = None, podcast_script: str | None = None) -> Path:
     day = directory / now.astimezone(timezone.utc).strftime("%Y-%m-%d")
     day.mkdir(parents=True, exist_ok=True)
     md = day / f"{edition}.md"
@@ -127,5 +128,9 @@ def archive(directory: Path, edition: str, now: datetime, markdown: str, meta: d
         (day / f"{edition}.pdf").write_bytes(pdf)
     if phone_pdf is not None:
         (day / f"{edition}-phone.pdf").write_bytes(phone_pdf)
+    if podcast_mp3 is not None:
+        (day / f"{edition}-podcast.mp3").write_bytes(podcast_mp3)
+    if podcast_script is not None:
+        (day / f"{edition}-podcast.txt").write_text(podcast_script)
     (day / f"{edition}.meta.json").write_text(json.dumps(meta, indent=2, default=str))
     return md

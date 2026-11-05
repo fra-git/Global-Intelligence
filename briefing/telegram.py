@@ -107,6 +107,14 @@ class Telegram:
                          chat_id=chat_id, caption=caption[:1024])
         return res["message_id"]
 
+    def send_audio(self, chat_id: str, filename: str, data: bytes, title: str,
+                   duration: int = 0, caption: str = "") -> int:
+        """Send an MP3 as a playable audio track (the daily podcast)."""
+        res = self._call("sendAudio", files={"audio": (filename, data, "audio/mpeg")},
+                         chat_id=chat_id, title=title, performer="Global Intelligence",
+                         duration=duration, caption=caption[:1024])
+        return res["message_id"]
+
     def get_me(self) -> dict:
         return self._call("getMe")
 

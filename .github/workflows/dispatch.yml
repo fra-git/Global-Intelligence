@@ -21,7 +21,7 @@ on:
   workflow_dispatch:
     inputs:
       edition:
-        description: "AM (daily, weekly on Sundays) | PM (evening) | DAILY | EVENING | WEEKLY | auto"
+        description: "AM (daily, weekly on Sundays) | PM (evening) | DAILY | EVENING | WEEKLY | auto | PODCAST_TEST (voice samples, no Claude)"
         default: auto
       send:
         description: "Post to Telegram"
@@ -78,7 +78,7 @@ jobs:
       - name: Install PDF rendering libraries
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y -qq libpango-1.0-0 libpangoft2-1.0-0 libharfbuzz-subset0 fonts-liberation
+          sudo apt-get install -y -qq libpango-1.0-0 libpangoft2-1.0-0 libharfbuzz-subset0 fonts-liberation ffmpeg
 
       - run: pip install -r requirements.txt
 
@@ -88,6 +88,12 @@ jobs:
 
       - name: Install Claude Code
         run: npm install -g @anthropic-ai/claude-code && claude --version
+
+      - name: Cache podcast voices
+        uses: actions/cache@v4
+        with:
+          path: voices
+          key: piper-voices-v1
 
       - name: Restore cross-dispatch state
         uses: actions/cache/restore@v4
@@ -108,6 +114,10 @@ jobs:
           BRIEFING_SEARCH_SCALE: ${{ vars.BRIEFING_SEARCH_SCALE || '1' }}
           BRIEFING_TZ: Europe/Rome
         run: |
+          if [ "${{ needs.gate.outputs.edition }}" = "PODCAST_TEST" ]; then
+            python -m briefing -v podcast-test
+            exit 0
+          fi
           FLAGS=""
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             if [ "${{ inputs.send }}" != "true" ]; then FLAGS="$FLAGS --no-send"; fi

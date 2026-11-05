@@ -390,7 +390,7 @@ READING_WPM = 230
 WRITING_OVERSHOOT = 1.15  # Claude tends to write ~15% more than the lengths asked for
 
 
-def _day_kind(edition: Edition, now: datetime) -> str | None:
+def day_kind(edition: Edition, now: datetime) -> str | None:
     if edition is Edition.WEEKLY:
         return "sunday"
     if edition is Edition.DAILY:
@@ -411,7 +411,7 @@ def spec_for(edition: Edition, now: datetime) -> EditionSpec:
     every section is resized to the day's reading-time budget, and research scales
     down with length (shorter reports need fewer searches and use less of the plan)."""
     spec = SPECS[edition]
-    kind = _day_kind(edition, now)
+    kind = day_kind(edition, now)
     if kind is None:
         return spec
     parts = tuple(Part(p.title, tuple(s for s in p.sections

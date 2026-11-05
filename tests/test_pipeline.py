@@ -42,12 +42,17 @@ class FakeTelegram:
         self.documents.append((chat, name, data, caption, mime))
         return 2
 
+    def send_audio(self, chat, name, data, title, duration=0, caption=""):
+        self.audio = getattr(self, "audio", []) + [(chat, name, data, title, duration)]
+        return 3
+
 
 def _settings(tmp_path):
     s = Settings()
     s.state_dir, s.archive_dir = tmp_path / "state", tmp_path / "archive"
     s.telegram_chat_ids = ["@test"]
     s.parallel_desks = 2
+    s.podcast = False
     return s
 
 
@@ -138,3 +143,43 @@ def test_report_html_neutralises_raw_html_and_unsafe_links():
     assert '<p class="sources">' in out
     page = render_html(SPECS[Edition.EVENING], NOW, {"What Changed Today": "- **x:** y"}, [])
     assert "Evening Update" in page and "Market data unavailable" in page
+
+
+def test_morning_podcast_written_from_report_and_sent_before_pdf(tmp_path, monkeypatch):
+    from briefing import podcast
+
+    monkeypatch.setattr(podcast, "synthesize", lambda text, voice="", title="": (b"ID3mp3", 1020))
+    s = _settings(tmp_path)
+    s.podcast = True
+    w, tg = FakeWriter(), FakeTelegram()
+    r = run_edition(Edition.DAILY, NOW, s, OPTS, writer=w, telegram=tg)
+    pod = w.calls[-1]
+    assert "about 17 minutes" in pod["user"] and "<report>" in pod["user"]
+    assert pod["domains"] is None and pod["effort"] == "medium"  # no research, light run
+    assert r.podcast_mp3 == b"ID3mp3" and r.meta["desks"]["podcast"]["seconds"] == 1020
+    (_, name, data, _, duration), = tg.audio
+    assert name.endswith(".mp3") and duration == 1020
+    assert (tmp_path / "archive" / "2026-10-08" / "DAILY-podcast.mp3").exists()
+
+
+def test_podcast_failure_never_blocks_the_report(tmp_path, monkeypatch):
+    from briefing import podcast
+
+    def broken(*a, **k):
+        raise RuntimeError("voice download failed")
+
+    monkeypatch.setattr(podcast, "synthesize", broken)
+    s = _settings(tmp_path)
+    s.podcast = True
+    tg = FakeTelegram()
+    r = run_edition(Edition.DAILY, NOW, s, OPTS, writer=FakeWriter(), telegram=tg)
+    assert r.podcast_mp3 is None and "voice download" in r.meta["desks"]["podcast"]["error"]
+    assert tg.documents and not getattr(tg, "audio", [])
+
+
+def test_no_podcast_in_the_evening(tmp_path):
+    s = _settings(tmp_path)
+    s.podcast = True
+    w = FakeWriter()
+    run_edition(Edition.EVENING, NOW + timedelta(hours=15), s, OPTS, writer=w, telegram=FakeTelegram())
+    assert len(w.calls) == 1
