@@ -9,7 +9,7 @@ import sys
 from datetime import datetime, timezone
 
 from briefing import ingest
-from briefing.config import Settings, load_sources
+from briefing.config import ROOT, Settings, load_sources
 from briefing.dispatch import (READING_WPM, SPECS, START_LOCAL, TIMEZONE, WRITING_OVERSHOOT,
                                Edition, edition_for, is_day_off, spec_for, utc_offset_hours)
 from briefing.pipeline import RunOptions, run_edition
@@ -113,6 +113,24 @@ def cmd_schedule(args) -> int:
     return 0
 
 
+def cmd_podcast_test(args) -> int:
+    """Read the sample script aloud with each voice and send the audio to Telegram (no Claude)."""
+    from pathlib import Path
+
+    from briefing import podcast
+
+    settings = Settings()
+    tg = Telegram(settings.telegram_bot_token)
+    text = podcast.speech_text(Path(args.file).read_text())
+    for voice in args.voice:
+        mp3, seconds = podcast.synthesize(text, voice, title=f"Campione voce {voice}")
+        print(f"{voice}: {seconds}s, {len(mp3) // 1024} KB")
+        for chat in settings.telegram_chat_ids:
+            tg.send_audio(chat, f"campione-{voice}.mp3", mp3, f"Campione voce: {voice}",
+                          seconds, f"🎧 Campione podcast, voce {voice}")
+    return 0
+
+
 def cmd_site(args) -> int:
     from pathlib import Path
 
@@ -150,6 +168,10 @@ def main(argv: list[str] | None = None) -> int:
         func=cmd_check_feeds)
     sub.add_parser("test-telegram", help="send a formatting test message").set_defaults(
         func=cmd_test_telegram)
+    pt = sub.add_parser("podcast-test", help="send a sample podcast to Telegram, one per voice")
+    pt.add_argument("--file", default=str(ROOT / "config" / "podcast_sample_it.txt"))
+    pt.add_argument("--voice", nargs="+", default=["it_IT-paola-medium", "it_IT-riccardo-x_low"])
+    pt.set_defaults(func=cmd_podcast_test)
     st = sub.add_parser("site", help="add delivered reports to the archive website folder")
     st.add_argument("out", help="site folder (the checked-out `reports` branch)")
     st.set_defaults(func=cmd_site)

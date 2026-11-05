@@ -10,8 +10,9 @@ from datetime import datetime, timezone
 
 from briefing import digest, ingest, markets
 from briefing.config import Settings, load_calendar, load_sources, load_system_prompt
-from briefing.dispatch import (EDITOR, MARKETS, Edition, EditionSpec, local_now, slot_for,
-                               spec_for)
+from briefing import podcast
+from briefing.dispatch import (EDITOR, MARKETS, Edition, EditionSpec, day_kind, local_now,
+                               slot_for, spec_for)
 from briefing.llm import Writer, WriterError
 from briefing.postprocess import clean, missing, split_sections, word_count
 from briefing.prompt import (REPAIR_INSTRUCTION, build_desk_message, build_editor_message,
@@ -47,6 +48,9 @@ class EditionResult:
     skipped: bool = False
     phone_pdf: bytes | None = None    # narrow pages, the version sent to Telegram
     phone_pages: int = 0
+    podcast_mp3: bytes | None = None   # Italian audio version, morning editions only
+    podcast_seconds: int = 0
+    podcast_script: str = ""
 
 
 def write_sections(writer: Writer, system: str, user: str, headings: list[str],
@@ -86,6 +90,28 @@ def _fallback(spec: EditionSpec, heading: str, tags: tuple[str, ...], pool: list
     if tags:
         return digest.section(ingest.select(pool, tags, 8, per_tag=8))
     return "*Not available this edition.*"
+
+
+def make_podcast(writer: Writer, report_markdown: str, now: datetime, minutes: int,
+                 title: str) -> tuple[bytes | None, int, str, dict]:
+    """Write the Italian script from the finished report (no research) and read it aloud.
+    Any failure skips the podcast; the report itself is never held back."""
+    loc = local_now(now)
+    info: dict = {"mode": "podcast", "minutes_target": minutes}
+    try:
+        res = writer.run(system=podcast.load_prompt(),
+                         user=podcast.build_message(report_markdown, f"{loc:%A %d %B %Y}", minutes),
+                         effort="medium")
+        info.update(usage=dict(res.usage), turns=res.turns)
+        script = podcast.speech_text(res.text)
+        info["words"] = word_count(script)
+        mp3, seconds = podcast.synthesize(script, title=f"{title} — {loc:%d/%m/%Y}")
+        info["seconds"] = seconds
+        return mp3, seconds, script, info
+    except Exception as exc:  # WriterError, missing voice, ffmpeg...
+        log.error("podcast skipped: %s", exc)
+        info["error"] = str(exc)
+        return None, 0, "", info
 
 
 def _summary_message(spec: EditionSpec, now: datetime, summary: str, pages: int) -> str:
@@ -193,6 +219,13 @@ def run_edition(
     except Exception as exc:  # deliver the summary and markdown rather than nothing
         log.error("PDF rendering failed: %s", exc)
 
+    podcast_mp3, podcast_seconds, podcast_script = None, 0, ""
+    kind = day_kind(edition, now)
+    if settings.podcast and kind and "ai" in modes:
+        podcast_mp3, podcast_seconds, podcast_script, info = make_podcast(
+            writer, markdown, now, podcast.PODCAST_MINUTES[kind], spec.title)
+        desk_meta["podcast"] = info
+
     summary = bodies.get(spec.summary_heading, "")
     usage_total: dict[str, int] = {}
     for info in desk_meta.values():
@@ -213,14 +246,17 @@ def run_edition(
         "sent_to": [],
     }
     result = EditionResult(edition, markdown, summary, pdf, pages, meta,
-                           phone_pdf=phone_pdf, phone_pages=phone_pages)
-    archive(settings.archive_dir, edition.value, now, markdown, meta, pdf, phone_pdf)
+                           phone_pdf=phone_pdf, phone_pages=phone_pages, podcast_mp3=podcast_mp3,
+                           podcast_seconds=podcast_seconds, podcast_script=podcast_script)
+    archive(settings.archive_dir, edition.value, now, markdown, meta, pdf, phone_pdf,
+            podcast_mp3, podcast_script or None)
 
     if opts.send:
         deliver(result, spec, now, settings, telegram)
         if delivered_key:
             state.mark_delivered(delivered_key, now)
-        archive(settings.archive_dir, edition.value, now, markdown, meta, pdf, phone_pdf)
+        archive(settings.archive_dir, edition.value, now, markdown, meta, pdf, phone_pdf,
+                podcast_mp3, podcast_script or None)
 
     if mode != "digest":
         state.mark_seen(used_keys, now)
@@ -254,6 +290,11 @@ def deliver(result: EditionResult, spec: EditionSpec, now: datetime, settings: S
     message = _summary_message(spec, now, result.summary, pages)
     for chat in settings.telegram_chat_ids:
         ids = telegram.send_briefing(chat, message)
+        if result.podcast_mp3 is not None:
+            ids.append(telegram.send_audio(
+                chat, f"{stem}.mp3", result.podcast_mp3,
+                f"{spec.title} — {loc:%d/%m/%Y}", result.podcast_seconds,
+                f"🎧 Podcast in italiano, {round(result.podcast_seconds / 60)} min"))
         ids.append(telegram.send_document(chat, name, data, caption, mime))
         result.meta["sent_to"].append({"chat": chat, "message_ids": ids,
                                        "at": datetime.now(timezone.utc).isoformat()})
