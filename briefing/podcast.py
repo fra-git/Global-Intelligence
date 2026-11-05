@@ -25,9 +25,11 @@ SAMPLE_PATH = ROOT / "config" / "podcast_sample_it.txt"
 VOICE_DIR = Path(os.environ.get("BRIEFING_VOICE_DIR", ROOT / "voices"))
 DEFAULT_VOICE = os.environ.get("BRIEFING_VOICE", "it_IT-paola-medium")
 
-# Spoken minutes per day kind (see dispatch.day_kind); Italian speech ~150 words a minute.
+# Spoken minutes per day kind (see dispatch.day_kind). Measured on the runner: Paola reads
+# ~183 words a minute at normal speed; slowed by LENGTH_SCALE it reads ~170.
 PODCAST_MINUTES = {"weekday": 17, "saturday": 25, "sunday": 25}
-SPOKEN_WPM = 150
+SPOKEN_WPM = 170
+LENGTH_SCALE = 1.08
 _PARAGRAPH_PAUSE_S = 0.6
 
 _MD = [
@@ -78,6 +80,7 @@ def ensure_voice(voice: str = DEFAULT_VOICE, directory: Path = VOICE_DIR) -> Pat
 def synthesize(text: str, voice: str = DEFAULT_VOICE, title: str = "") -> tuple[bytes, int]:
     """Read `text` aloud. Returns (MP3 bytes, duration in seconds)."""
     from piper import PiperVoice
+    from piper.config import SynthesisConfig
 
     model = PiperVoice.load(str(ensure_voice(voice)))
     with tempfile.TemporaryDirectory(prefix="podcast-") as tmp:
@@ -87,7 +90,7 @@ def synthesize(text: str, voice: str = DEFAULT_VOICE, title: str = "") -> tuple[
             for para in text.split("\n\n"):
                 with tempfile.NamedTemporaryFile(suffix=".wav", dir=tmp, delete=False) as part:
                     with wave.open(part.name, "wb") as pw:
-                        model.synthesize_wav(para, pw)
+                        model.synthesize_wav(para, pw, SynthesisConfig(length_scale=LENGTH_SCALE))
                 with wave.open(part.name, "rb") as pr:
                     if first:
                         out.setparams(pr.getparams())
